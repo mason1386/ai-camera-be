@@ -1,0 +1,34 @@
+# Binaries
+/bin/
+/dist/
+main
+main.exe
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Vendor
+/vendor/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+
+# Logs
+*.log
+
+# Docker
+docker-compose.override.yml
+
+# Test coverage
+coverage.out

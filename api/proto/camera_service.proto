@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "app/pkg/pb";
+
+service CameraService {
+  rpc GetCamera(GetCameraRequest) returns (GetCameraResponse);
+}
+
+message GetCameraRequest {
+  string id = 1;
+}
+
+message GetCameraResponse {
+  string id = 1;
+  string name = 2;
+  string rtsp_url = 3;
+}

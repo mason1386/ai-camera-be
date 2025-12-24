@@ -1,0 +1,491 @@
+basePath: /api/v1
+definitions:
+  domain.Camera:
+    properties:
+      ai_enabled:
+        type: boolean
+      created_at:
+        type: string
+      id:
+        type: string
+      ip_address:
+        type: string
+      name:
+        type: string
+      rtsp_url:
+        type: string
+      status:
+        $ref: '#/definitions/domain.CameraStatus'
+      updated_at:
+        type: string
+      zone_id:
+        type: string
+    type: object
+  domain.CameraStatus:
+    enum:
+    - online
+    - offline
+    - maintenance
+    type: string
+    x-enum-varnames:
+    - CameraStatusOnline
+    - CameraStatusOffline
+    - CameraStatusMaintenance
+  domain.CreateCameraRequest:
+    properties:
+      ai_enabled:
+        type: boolean
+      ip_address:
+        type: string
+      name:
+        type: string
+      rtsp_url:
+        type: string
+      zone_id:
+        type: string
+    required:
+    - name
+    - rtsp_url
+    type: object
+  domain.CreateZoneRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  domain.LoginRequest:
+    properties:
+      email:
+        description: Login by Email
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  domain.LoginResponse:
+    properties:
+      access_token:
+        type: string
+      user:
+        $ref: '#/definitions/domain.User'
+    type: object
+  domain.RegisterRequest:
+    properties:
+      email:
+        type: string
+      full_name:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      username:
+        type: string
+    required:
+    - email
+    - password
+    - username
+    type: object
+  domain.UpdateCameraRequest:
+    properties:
+      ai_enabled:
+        description: Pointer to distinguish false vs nil
+        type: boolean
+      ip_address:
+        type: string
+      name:
+        type: string
+      rtsp_url:
+        type: string
+      status:
+        $ref: '#/definitions/domain.CameraStatus'
+      zone_id:
+        type: string
+    type: object
+  domain.UpdateZoneRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  domain.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      full_name:
+        type: string
+      id:
+        description: Converted from UUID
+        type: string
+      last_login_at:
+        type: string
+      phone:
+        type: string
+      role_id:
+        type: string
+      status:
+        $ref: '#/definitions/domain.UserStatus'
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+  domain.UserStatus:
+    enum:
+    - active
+    - locked
+    - banned
+    type: string
+    x-enum-varnames:
+    - UserStatusActive
+    - UserStatusLocked
+    - UserStatusBanned
+  domain.Zone:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: API Server for AI Camera System
+  title: AI Camera Backend API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Login with username and password to get access token
+      parameters:
+      - description: Login Credentials
+        in: body
+        name: credentials
+        required: true
+        schema:
+          $ref: '#/definitions/domain.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.LoginResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Login to system
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user account
+      parameters:
+      - description: User Info
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/domain.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.User'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Register a new user
+      tags:
+      - auth
+  /cameras:
+    get:
+      description: List cameras, optionally filtered by zone_id
+      parameters:
+      - description: Filter by Zone ID
+        in: query
+        name: zone_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.Camera'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List cameras
+      tags:
+      - cameras
+    post:
+      consumes:
+      - application/json
+      description: Create a new camera in the system
+      parameters:
+      - description: Camera Info
+        in: body
+        name: camera
+        required: true
+        schema:
+          $ref: '#/definitions/domain.CreateCameraRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.Camera'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new camera
+      tags:
+      - cameras
+  /cameras/{id}:
+    delete:
+      parameters:
+      - description: Camera ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete camera
+      tags:
+      - cameras
+    get:
+      parameters:
+      - description: Camera ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Camera'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get camera by ID
+      tags:
+      - cameras
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Camera ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update Info
+        in: body
+        name: camera
+        required: true
+        schema:
+          $ref: '#/definitions/domain.UpdateCameraRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Camera'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update camera
+      tags:
+      - cameras
+  /zones:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.Zone'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: List all zones
+      tags:
+      - zones
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Zone Info
+        in: body
+        name: zone
+        required: true
+        schema:
+          $ref: '#/definitions/domain.CreateZoneRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.Zone'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new zone
+      tags:
+      - zones
+  /zones/{id}:
+    delete:
+      parameters:
+      - description: Zone ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a zone
+      tags:
+      - zones
+    get:
+      parameters:
+      - description: Zone ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Zone'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get a zone by ID
+      tags:
+      - zones
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Zone ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update Info
+        in: body
+        name: zone
+        required: true
+        schema:
+          $ref: '#/definitions/domain.UpdateZoneRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Zone'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a zone
+      tags:
+      - zones
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
