@@ -1,6 +1,6 @@
 basePath: /api/v1
 definitions:
-  domain.Camera:
+  app_internal_core_domain.Camera:
     properties:
       ai_enabled:
         type: boolean
@@ -15,13 +15,13 @@ definitions:
       rtsp_url:
         type: string
       status:
-        $ref: '#/definitions/domain.CameraStatus'
+        $ref: '#/definitions/app_internal_core_domain.CameraStatus'
       updated_at:
         type: string
       zone_id:
         type: string
     type: object
-  domain.CameraStatus:
+  app_internal_core_domain.CameraStatus:
     enum:
     - online
     - offline
@@ -31,7 +31,7 @@ definitions:
     - CameraStatusOnline
     - CameraStatusOffline
     - CameraStatusMaintenance
-  domain.CreateCameraRequest:
+  app_internal_core_domain.CreateCameraRequest:
     properties:
       ai_enabled:
         type: boolean
@@ -47,7 +47,7 @@ definitions:
     - name
     - rtsp_url
     type: object
-  domain.CreateZoneRequest:
+  app_internal_core_domain.CreateZoneRequest:
     properties:
       description:
         type: string
@@ -56,7 +56,50 @@ definitions:
     required:
     - name
     type: object
-  domain.LoginRequest:
+  app_internal_core_domain.Identity:
+    properties:
+      approved_by:
+        type: string
+      code:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        type: string
+      deleted_at:
+        type: string
+      face_image_url:
+        type: string
+      full_name:
+        type: string
+      id:
+        type: string
+      identity_card_number:
+        type: string
+      note:
+        type: string
+      phone_number:
+        type: string
+      status:
+        $ref: '#/definitions/app_internal_core_domain.IdentityStatus'
+      type:
+        type: string
+      updated_at:
+        type: string
+      user_account_id:
+        type: string
+    type: object
+  app_internal_core_domain.IdentityStatus:
+    enum:
+    - pending
+    - active
+    - rejected
+    type: string
+    x-enum-varnames:
+    - IdentityStatusPending
+    - IdentityStatusActive
+    - IdentityStatusRejected
+  app_internal_core_domain.LoginRequest:
     properties:
       email:
         description: Login by Email
@@ -67,14 +110,14 @@ definitions:
     - email
     - password
     type: object
-  domain.LoginResponse:
+  app_internal_core_domain.LoginResponse:
     properties:
       access_token:
         type: string
       user:
-        $ref: '#/definitions/domain.User'
+        $ref: '#/definitions/app_internal_core_domain.User'
     type: object
-  domain.RegisterRequest:
+  app_internal_core_domain.RegisterRequest:
     properties:
       email:
         type: string
@@ -90,7 +133,7 @@ definitions:
     - password
     - username
     type: object
-  domain.UpdateCameraRequest:
+  app_internal_core_domain.UpdateCameraRequest:
     properties:
       ai_enabled:
         description: Pointer to distinguish false vs nil
@@ -102,18 +145,18 @@ definitions:
       rtsp_url:
         type: string
       status:
-        $ref: '#/definitions/domain.CameraStatus'
+        $ref: '#/definitions/app_internal_core_domain.CameraStatus'
       zone_id:
         type: string
     type: object
-  domain.UpdateZoneRequest:
+  app_internal_core_domain.UpdateZoneRequest:
     properties:
       description:
         type: string
       name:
         type: string
     type: object
-  domain.User:
+  app_internal_core_domain.User:
     properties:
       created_at:
         type: string
@@ -131,13 +174,13 @@ definitions:
       role_id:
         type: string
       status:
-        $ref: '#/definitions/domain.UserStatus'
+        $ref: '#/definitions/app_internal_core_domain.UserStatus'
       updated_at:
         type: string
       username:
         type: string
     type: object
-  domain.UserStatus:
+  app_internal_core_domain.UserStatus:
     enum:
     - active
     - locked
@@ -147,7 +190,7 @@ definitions:
     - UserStatusActive
     - UserStatusLocked
     - UserStatusBanned
-  domain.Zone:
+  app_internal_core_domain.Zone:
     properties:
       created_at:
         type: string
@@ -157,6 +200,54 @@ definitions:
         type: string
       name:
         type: string
+    type: object
+  app_internal_core_ports.CreateIdentityRequest:
+    properties:
+      code:
+        type: string
+      createdBy:
+        type: string
+      face_image_url:
+        type: string
+      full_name:
+        type: string
+      identity_card_number:
+        type: string
+      note:
+        type: string
+      phone_number:
+        type: string
+      type:
+        type: string
+    required:
+    - code
+    - face_image_url
+    - full_name
+    - type
+    type: object
+  app_internal_core_ports.UpdateIdentityRequest:
+    properties:
+      face_image_url:
+        type: string
+      full_name:
+        type: string
+      phone_number:
+        type: string
+    type: object
+  internal_adapters_handler_http.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  internal_adapters_handler_http.PaginatedResponse:
+    properties:
+      data: {}
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
     type: object
 info:
   contact: {}
@@ -175,14 +266,14 @@ paths:
         name: credentials
         required: true
         schema:
-          $ref: '#/definitions/domain.LoginRequest'
+          $ref: '#/definitions/app_internal_core_domain.LoginRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/domain.LoginResponse'
+            $ref: '#/definitions/app_internal_core_domain.LoginResponse'
         "401":
           description: Unauthorized
           schema:
@@ -203,14 +294,14 @@ paths:
         name: user
         required: true
         schema:
-          $ref: '#/definitions/domain.RegisterRequest'
+          $ref: '#/definitions/app_internal_core_domain.RegisterRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/domain.User'
+            $ref: '#/definitions/app_internal_core_domain.User'
         "400":
           description: Bad Request
           schema:
@@ -235,7 +326,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/domain.Camera'
+              $ref: '#/definitions/app_internal_core_domain.Camera'
             type: array
       security:
       - BearerAuth: []
@@ -252,14 +343,14 @@ paths:
         name: camera
         required: true
         schema:
-          $ref: '#/definitions/domain.CreateCameraRequest'
+          $ref: '#/definitions/app_internal_core_domain.CreateCameraRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/domain.Camera'
+            $ref: '#/definitions/app_internal_core_domain.Camera'
         "400":
           description: Bad Request
           schema:
@@ -316,7 +407,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/domain.Camera'
+            $ref: '#/definitions/app_internal_core_domain.Camera'
         "404":
           description: Not Found
           schema:
@@ -342,14 +433,14 @@ paths:
         name: camera
         required: true
         schema:
-          $ref: '#/definitions/domain.UpdateCameraRequest'
+          $ref: '#/definitions/app_internal_core_domain.UpdateCameraRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/domain.Camera'
+            $ref: '#/definitions/app_internal_core_domain.Camera'
         "404":
           description: Not Found
           schema:
@@ -361,6 +452,154 @@ paths:
       summary: Update camera
       tags:
       - cameras
+  /identities:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated list of identities
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_adapters_handler_http.PaginatedResponse'
+      summary: List identities
+      tags:
+      - identities
+    post:
+      consumes:
+      - application/json
+      description: Register a new face profile
+      parameters:
+      - description: Identity Info
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/app_internal_core_ports.CreateIdentityRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/app_internal_core_domain.Identity'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/internal_adapters_handler_http.ErrorResponse'
+      summary: Create a new identity
+      tags:
+      - identities
+  /identities/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Remove identity from system
+      parameters:
+      - description: Identity ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+      summary: Delete identity (Soft delete)
+      tags:
+      - identities
+    get:
+      consumes:
+      - application/json
+      description: Get info of a specific identity
+      parameters:
+      - description: Identity ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/app_internal_core_domain.Identity'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/internal_adapters_handler_http.ErrorResponse'
+      summary: Get identity details
+      tags:
+      - identities
+    put:
+      consumes:
+      - application/json
+      description: Update name, phone or face image
+      parameters:
+      - description: Identity ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update Info
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/app_internal_core_ports.UpdateIdentityRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/app_internal_core_domain.Identity'
+      summary: Update identity info
+      tags:
+      - identities
+  /identities/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Admin updates status
+      parameters:
+      - description: Identity ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Status (active/rejected)
+        in: body
+        name: request
+        required: true
+        schema:
+          properties:
+            status:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/app_internal_core_domain.Identity'
+      summary: Approve or Reject identity
+      tags:
+      - identities
   /zones:
     get:
       produces:
@@ -370,7 +609,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/domain.Zone'
+              $ref: '#/definitions/app_internal_core_domain.Zone'
             type: array
       security:
       - BearerAuth: []
@@ -386,14 +625,14 @@ paths:
         name: zone
         required: true
         schema:
-          $ref: '#/definitions/domain.CreateZoneRequest'
+          $ref: '#/definitions/app_internal_core_domain.CreateZoneRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/domain.Zone'
+            $ref: '#/definitions/app_internal_core_domain.Zone'
         "400":
           description: Bad Request
           schema:
@@ -438,7 +677,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/domain.Zone'
+            $ref: '#/definitions/app_internal_core_domain.Zone'
         "404":
           description: Not Found
           schema:
@@ -464,14 +703,14 @@ paths:
         name: zone
         required: true
         schema:
-          $ref: '#/definitions/domain.UpdateZoneRequest'
+          $ref: '#/definitions/app_internal_core_domain.UpdateZoneRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/domain.Zone'
+            $ref: '#/definitions/app_internal_core_domain.Zone'
         "404":
           description: Not Found
           schema:

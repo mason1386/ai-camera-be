@@ -5,8 +5,98 @@
 package generated
 
 import (
+	"database/sql/driver"
+	"fmt"
+
 	"github.com/jackc/pgx/v5/pgtype"
 )
+
+type AttendanceStatus string
+
+const (
+	AttendanceStatusLate       AttendanceStatus = "late"
+	AttendanceStatusOnTime     AttendanceStatus = "on_time"
+	AttendanceStatusAbsent     AttendanceStatus = "absent"
+	AttendanceStatusEarlyLeave AttendanceStatus = "early_leave"
+)
+
+func (e *AttendanceStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AttendanceStatus(s)
+	case string:
+		*e = AttendanceStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AttendanceStatus: %T", src)
+	}
+	return nil
+}
+
+type NullAttendanceStatus struct {
+	AttendanceStatus AttendanceStatus `json:"attendance_status"`
+	Valid            bool             `json:"valid"` // Valid is true if AttendanceStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAttendanceStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.AttendanceStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AttendanceStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAttendanceStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AttendanceStatus), nil
+}
+
+type IdentityStatus string
+
+const (
+	IdentityStatusPending  IdentityStatus = "pending"
+	IdentityStatusActive   IdentityStatus = "active"
+	IdentityStatusRejected IdentityStatus = "rejected"
+)
+
+func (e *IdentityStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = IdentityStatus(s)
+	case string:
+		*e = IdentityStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for IdentityStatus: %T", src)
+	}
+	return nil
+}
+
+type NullIdentityStatus struct {
+	IdentityStatus IdentityStatus `json:"identity_status"`
+	Valid          bool           `json:"valid"` // Valid is true if IdentityStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullIdentityStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.IdentityStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.IdentityStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullIdentityStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.IdentityStatus), nil
+}
 
 type AttendanceLog struct {
 	ID              pgtype.UUID      `json:"id"`
@@ -50,6 +140,18 @@ type AttendanceLogsDefault struct {
 	SnapshotUrl     pgtype.Text      `json:"snapshot_url"`
 	IsValid         pgtype.Bool      `json:"is_valid"`
 	CreatedAt       pgtype.Timestamp `json:"created_at"`
+}
+
+type AttendanceRecord struct {
+	ID         pgtype.UUID          `json:"id"`
+	IdentityID pgtype.UUID          `json:"identity_id"`
+	Date       pgtype.Date          `json:"date"`
+	CheckIn    pgtype.Timestamptz   `json:"check_in"`
+	CheckOut   pgtype.Timestamptz   `json:"check_out"`
+	WorkHours  pgtype.Float8        `json:"work_hours"`
+	Status     NullAttendanceStatus `json:"status"`
+	CreatedAt  pgtype.Timestamptz   `json:"created_at"`
+	UpdatedAt  pgtype.Timestamptz   `json:"updated_at"`
 }
 
 type AuditLog struct {
@@ -97,6 +199,72 @@ type DailyAttendance struct {
 	Note         pgtype.Text      `json:"note"`
 	CreatedAt    pgtype.Timestamp `json:"created_at"`
 	UpdatedAt    pgtype.Timestamp `json:"updated_at"`
+}
+
+type Identity struct {
+	ID                 pgtype.UUID        `json:"id"`
+	Code               string             `json:"code"`
+	FullName           string             `json:"full_name"`
+	PhoneNumber        pgtype.Text        `json:"phone_number"`
+	IdentityCardNumber pgtype.Text        `json:"identity_card_number"`
+	FaceImageUrl       string             `json:"face_image_url"`
+	Type               string             `json:"type"`
+	Status             NullIdentityStatus `json:"status"`
+	Note               pgtype.Text        `json:"note"`
+	CreatedBy          pgtype.UUID        `json:"created_by"`
+	ApprovedBy         pgtype.UUID        `json:"approved_by"`
+	UserAccountID      pgtype.UUID        `json:"user_account_id"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt          pgtype.Timestamptz `json:"deleted_at"`
+}
+
+type RecognitionLog struct {
+	ID          pgtype.UUID        `json:"id"`
+	CameraID    pgtype.UUID        `json:"camera_id"`
+	IdentityID  pgtype.UUID        `json:"identity_id"`
+	SnapshotUrl pgtype.Text        `json:"snapshot_url"`
+	FaceCropUrl pgtype.Text        `json:"face_crop_url"`
+	Confidence  pgtype.Float8      `json:"confidence"`
+	Label       pgtype.Text        `json:"label"`
+	OccurredAt  pgtype.Timestamptz `json:"occurred_at"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
+type RecognitionLogs202412 struct {
+	ID          pgtype.UUID        `json:"id"`
+	CameraID    pgtype.UUID        `json:"camera_id"`
+	IdentityID  pgtype.UUID        `json:"identity_id"`
+	SnapshotUrl pgtype.Text        `json:"snapshot_url"`
+	FaceCropUrl pgtype.Text        `json:"face_crop_url"`
+	Confidence  pgtype.Float8      `json:"confidence"`
+	Label       pgtype.Text        `json:"label"`
+	OccurredAt  pgtype.Timestamptz `json:"occurred_at"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
+type RecognitionLogs202501 struct {
+	ID          pgtype.UUID        `json:"id"`
+	CameraID    pgtype.UUID        `json:"camera_id"`
+	IdentityID  pgtype.UUID        `json:"identity_id"`
+	SnapshotUrl pgtype.Text        `json:"snapshot_url"`
+	FaceCropUrl pgtype.Text        `json:"face_crop_url"`
+	Confidence  pgtype.Float8      `json:"confidence"`
+	Label       pgtype.Text        `json:"label"`
+	OccurredAt  pgtype.Timestamptz `json:"occurred_at"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
+type RecognitionLogsDefault struct {
+	ID          pgtype.UUID        `json:"id"`
+	CameraID    pgtype.UUID        `json:"camera_id"`
+	IdentityID  pgtype.UUID        `json:"identity_id"`
+	SnapshotUrl pgtype.Text        `json:"snapshot_url"`
+	FaceCropUrl pgtype.Text        `json:"face_crop_url"`
+	Confidence  pgtype.Float8      `json:"confidence"`
+	Label       pgtype.Text        `json:"label"`
+	OccurredAt  pgtype.Timestamptz `json:"occurred_at"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 }
 
 type Role struct {

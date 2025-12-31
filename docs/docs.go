@@ -35,7 +35,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/domain.LoginRequest"
+                            "$ref": "#/definitions/app_internal_core_domain.LoginRequest"
                         }
                     }
                 ],
@@ -43,7 +43,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/domain.LoginResponse"
+                            "$ref": "#/definitions/app_internal_core_domain.LoginResponse"
                         }
                     },
                     "401": {
@@ -78,7 +78,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/domain.RegisterRequest"
+                            "$ref": "#/definitions/app_internal_core_domain.RegisterRequest"
                         }
                     }
                 ],
@@ -86,7 +86,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/domain.User"
+                            "$ref": "#/definitions/app_internal_core_domain.User"
                         }
                     },
                     "400": {
@@ -130,7 +130,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/domain.Camera"
+                                "$ref": "#/definitions/app_internal_core_domain.Camera"
                             }
                         }
                     }
@@ -160,7 +160,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/domain.CreateCameraRequest"
+                            "$ref": "#/definitions/app_internal_core_domain.CreateCameraRequest"
                         }
                     }
                 ],
@@ -168,7 +168,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/domain.Camera"
+                            "$ref": "#/definitions/app_internal_core_domain.Camera"
                         }
                     },
                     "400": {
@@ -228,7 +228,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/domain.Camera"
+                            "$ref": "#/definitions/app_internal_core_domain.Camera"
                         }
                     },
                     "404": {
@@ -272,7 +272,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/domain.UpdateCameraRequest"
+                            "$ref": "#/definitions/app_internal_core_domain.UpdateCameraRequest"
                         }
                     }
                 ],
@@ -280,7 +280,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/domain.Camera"
+                            "$ref": "#/definitions/app_internal_core_domain.Camera"
                         }
                     },
                     "404": {
@@ -326,6 +326,231 @@ const docTemplate = `{
                 }
             }
         },
+        "/identities": {
+            "get": {
+                "description": "Get paginated list of identities",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "identities"
+                ],
+                "summary": "List identities",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_adapters_handler_http.PaginatedResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Register a new face profile",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "identities"
+                ],
+                "summary": "Create a new identity",
+                "parameters": [
+                    {
+                        "description": "Identity Info",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/app_internal_core_ports.CreateIdentityRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/app_internal_core_domain.Identity"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/internal_adapters_handler_http.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/identities/{id}": {
+            "get": {
+                "description": "Get info of a specific identity",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "identities"
+                ],
+                "summary": "Get identity details",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Identity ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/app_internal_core_domain.Identity"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/internal_adapters_handler_http.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Update name, phone or face image",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "identities"
+                ],
+                "summary": "Update identity info",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Identity ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update Info",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/app_internal_core_ports.UpdateIdentityRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/app_internal_core_domain.Identity"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Remove identity from system",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "identities"
+                ],
+                "summary": "Delete identity (Soft delete)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Identity ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
+        },
+        "/identities/{id}/status": {
+            "patch": {
+                "description": "Admin updates status",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "identities"
+                ],
+                "summary": "Approve or Reject identity",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Identity ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Status (active/rejected)",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "status": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/app_internal_core_domain.Identity"
+                        }
+                    }
+                }
+            }
+        },
         "/zones": {
             "get": {
                 "security": [
@@ -346,7 +571,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/domain.Zone"
+                                "$ref": "#/definitions/app_internal_core_domain.Zone"
                             }
                         }
                     }
@@ -375,7 +600,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/domain.CreateZoneRequest"
+                            "$ref": "#/definitions/app_internal_core_domain.CreateZoneRequest"
                         }
                     }
                 ],
@@ -383,7 +608,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/domain.Zone"
+                            "$ref": "#/definitions/app_internal_core_domain.Zone"
                         }
                     },
                     "400": {
@@ -425,7 +650,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/domain.Zone"
+                            "$ref": "#/definitions/app_internal_core_domain.Zone"
                         }
                     },
                     "404": {
@@ -469,7 +694,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/domain.UpdateZoneRequest"
+                            "$ref": "#/definitions/app_internal_core_domain.UpdateZoneRequest"
                         }
                     }
                 ],
@@ -477,7 +702,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/domain.Zone"
+                            "$ref": "#/definitions/app_internal_core_domain.Zone"
                         }
                     },
                     "404": {
@@ -525,7 +750,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "domain.Camera": {
+        "app_internal_core_domain.Camera": {
             "type": "object",
             "properties": {
                 "ai_enabled": {
@@ -547,7 +772,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "status": {
-                    "$ref": "#/definitions/domain.CameraStatus"
+                    "$ref": "#/definitions/app_internal_core_domain.CameraStatus"
                 },
                 "updated_at": {
                     "type": "string"
@@ -557,7 +782,7 @@ const docTemplate = `{
                 }
             }
         },
-        "domain.CameraStatus": {
+        "app_internal_core_domain.CameraStatus": {
             "type": "string",
             "enum": [
                 "online",
@@ -570,7 +795,7 @@ const docTemplate = `{
                 "CameraStatusMaintenance"
             ]
         },
-        "domain.CreateCameraRequest": {
+        "app_internal_core_domain.CreateCameraRequest": {
             "type": "object",
             "required": [
                 "name",
@@ -594,7 +819,7 @@ const docTemplate = `{
                 }
             }
         },
-        "domain.CreateZoneRequest": {
+        "app_internal_core_domain.CreateZoneRequest": {
             "type": "object",
             "required": [
                 "name"
@@ -608,7 +833,70 @@ const docTemplate = `{
                 }
             }
         },
-        "domain.LoginRequest": {
+        "app_internal_core_domain.Identity": {
+            "type": "object",
+            "properties": {
+                "approved_by": {
+                    "type": "string"
+                },
+                "code": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "created_by": {
+                    "type": "string"
+                },
+                "deleted_at": {
+                    "type": "string"
+                },
+                "face_image_url": {
+                    "type": "string"
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "identity_card_number": {
+                    "type": "string"
+                },
+                "note": {
+                    "type": "string"
+                },
+                "phone_number": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/app_internal_core_domain.IdentityStatus"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_account_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "app_internal_core_domain.IdentityStatus": {
+            "type": "string",
+            "enum": [
+                "pending",
+                "active",
+                "rejected"
+            ],
+            "x-enum-varnames": [
+                "IdentityStatusPending",
+                "IdentityStatusActive",
+                "IdentityStatusRejected"
+            ]
+        },
+        "app_internal_core_domain.LoginRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -624,18 +912,18 @@ const docTemplate = `{
                 }
             }
         },
-        "domain.LoginResponse": {
+        "app_internal_core_domain.LoginResponse": {
             "type": "object",
             "properties": {
                 "access_token": {
                     "type": "string"
                 },
                 "user": {
-                    "$ref": "#/definitions/domain.User"
+                    "$ref": "#/definitions/app_internal_core_domain.User"
                 }
             }
         },
-        "domain.RegisterRequest": {
+        "app_internal_core_domain.RegisterRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -658,7 +946,7 @@ const docTemplate = `{
                 }
             }
         },
-        "domain.UpdateCameraRequest": {
+        "app_internal_core_domain.UpdateCameraRequest": {
             "type": "object",
             "properties": {
                 "ai_enabled": {
@@ -675,14 +963,14 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "status": {
-                    "$ref": "#/definitions/domain.CameraStatus"
+                    "$ref": "#/definitions/app_internal_core_domain.CameraStatus"
                 },
                 "zone_id": {
                     "type": "string"
                 }
             }
         },
-        "domain.UpdateZoneRequest": {
+        "app_internal_core_domain.UpdateZoneRequest": {
             "type": "object",
             "properties": {
                 "description": {
@@ -693,7 +981,7 @@ const docTemplate = `{
                 }
             }
         },
-        "domain.User": {
+        "app_internal_core_domain.User": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -719,7 +1007,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "status": {
-                    "$ref": "#/definitions/domain.UserStatus"
+                    "$ref": "#/definitions/app_internal_core_domain.UserStatus"
                 },
                 "updated_at": {
                     "type": "string"
@@ -729,7 +1017,7 @@ const docTemplate = `{
                 }
             }
         },
-        "domain.UserStatus": {
+        "app_internal_core_domain.UserStatus": {
             "type": "string",
             "enum": [
                 "active",
@@ -742,7 +1030,7 @@ const docTemplate = `{
                 "UserStatusBanned"
             ]
         },
-        "domain.Zone": {
+        "app_internal_core_domain.Zone": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -756,6 +1044,78 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "app_internal_core_ports.CreateIdentityRequest": {
+            "type": "object",
+            "required": [
+                "code",
+                "face_image_url",
+                "full_name",
+                "type"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "createdBy": {
+                    "type": "string"
+                },
+                "face_image_url": {
+                    "type": "string"
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "identity_card_number": {
+                    "type": "string"
+                },
+                "note": {
+                    "type": "string"
+                },
+                "phone_number": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "app_internal_core_ports.UpdateIdentityRequest": {
+            "type": "object",
+            "properties": {
+                "face_image_url": {
+                    "type": "string"
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "phone_number": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_adapters_handler_http.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_adapters_handler_http.PaginatedResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
                 }
             }
         }

@@ -11,20 +11,33 @@ import (
 )
 
 type Querier interface {
+	CountIdentities(ctx context.Context) (int64, error)
+	CreateAttendanceRecord(ctx context.Context, arg CreateAttendanceRecordParams) (AttendanceRecord, error)
 	CreateCamera(ctx context.Context, arg CreateCameraParams) (CreateCameraRow, error)
+	CreateIdentity(ctx context.Context, arg CreateIdentityParams) (Identity, error)
+	CreateRecognitionLog(ctx context.Context, arg CreateRecognitionLogParams) (RecognitionLog, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error)
 	CreateZone(ctx context.Context, arg CreateZoneParams) (CreateZoneRow, error)
 	DeleteCamera(ctx context.Context, id pgtype.UUID) error
+	DeleteIdentity(ctx context.Context, id pgtype.UUID) error
 	DeleteZone(ctx context.Context, id pgtype.UUID) error
+	GetAttendanceRecord(ctx context.Context, arg GetAttendanceRecordParams) (AttendanceRecord, error)
 	GetCamera(ctx context.Context, id pgtype.UUID) (Camera, error)
+	GetIdentity(ctx context.Context, id pgtype.UUID) (Identity, error)
+	GetIdentityByCode(ctx context.Context, code string) (Identity, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
 	GetZone(ctx context.Context, id pgtype.UUID) (Zone, error)
 	ListCameras(ctx context.Context) ([]Camera, error)
 	ListCamerasByZone(ctx context.Context, zoneID pgtype.UUID) ([]Camera, error)
+	ListIdentities(ctx context.Context, arg ListIdentitiesParams) ([]Identity, error)
+	ListRecognitionLogs(ctx context.Context, arg ListRecognitionLogsParams) ([]RecognitionLog, error)
 	ListZones(ctx context.Context) ([]Zone, error)
+	UpdateAttendanceRecord(ctx context.Context, arg UpdateAttendanceRecordParams) (AttendanceRecord, error)
 	UpdateCamera(ctx context.Context, arg UpdateCameraParams) (Camera, error)
+	UpdateIdentity(ctx context.Context, arg UpdateIdentityParams) (Identity, error)
+	UpdateIdentityStatus(ctx context.Context, arg UpdateIdentityStatusParams) (Identity, error)
 	UpdateZone(ctx context.Context, arg UpdateZoneParams) (Zone, error)
 }
 

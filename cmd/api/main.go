@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/gin-gonic/gin"
 	"app/config"
 	_ "app/docs" // Import generated docs
 	"app/internal/adapters/broker/kafka"
@@ -13,6 +12,9 @@ import (
 	"app/internal/adapters/storage/redis"
 	"app/internal/core/services"
 	"app/pkg/logger"
+
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"go.uber.org/zap"
@@ -61,6 +63,16 @@ func main() {
 
 	// 6. Init Router
 	r := gin.Default()
+
+	// --- CORS CONFIGURATION ---
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"*"}, // Allow all origins
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
+
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "pong",
@@ -77,16 +89,19 @@ func main() {
 	cameraRepo := postgres.NewCameraRepository(db)
 	userRepo := postgres.NewUserRepository(db)
 	zoneRepo := postgres.NewZoneRepository(db)
+	identityRepo := postgres.NewIdentityRepository(db)
 
 	// Services
 	cameraService := services.NewCameraService(cameraRepo)
 	authService := services.NewAuthService(userRepo)
 	zoneService := services.NewZoneService(zoneRepo)
+	identityService := services.NewIdentityService(identityRepo)
 
 	// Handlers
 	cameraHandler := http.NewCameraHandler(cameraService)
 	authHandler := http.NewAuthHandler(authService)
 	zoneHandler := http.NewZoneHandler(zoneService)
+	identityHandler := http.NewIdentityHandler(identityService)
 
 	// --- ROUTES ---
 	apiV1 := r.Group("/api/v1")
@@ -120,6 +135,17 @@ func main() {
 				cameras.GET("/:id", cameraHandler.GetCamera)
 				cameras.PUT("/:id", cameraHandler.UpdateCamera)
 				cameras.DELETE("/:id", cameraHandler.DeleteCamera)
+			}
+
+			// Identities
+			identities := protected.Group("/identities")
+			{
+				identities.POST("", identityHandler.CreateIdentity)
+				identities.GET("", identityHandler.ListIdentities)
+				identities.GET("/:id", identityHandler.GetIdentity)
+				identities.PUT("/:id", identityHandler.UpdateIdentity)
+				identities.PATCH("/:id/status", identityHandler.UpdateStatus)
+				identities.DELETE("/:id", identityHandler.DeleteIdentity)
 			}
 		}
 	}
