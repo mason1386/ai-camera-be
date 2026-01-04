@@ -1,13 +1,205 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "API Server for AI Camera System",
-        "title": "AI Camera Backend API",
-        "contact": {},
+        "description": "This is the API server for AI Camera System.",
+        "title": "AI Camera API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "API Support",
+            "url": "http://www.swagger.io/support",
+            "email": "support@swagger.io"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
         "version": "1.0"
     },
+    "host": "localhost:8080",
     "basePath": "/api/v1",
     "paths": {
+        "/ai-configs": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ai"
+                ],
+                "summary": "Update AI configuration",
+                "parameters": [
+                    {
+                        "description": "AI Config Info",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.AIConfig"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.AIConfig"
+                        }
+                    }
+                }
+            }
+        },
+        "/ai-configs/camera/{cameraId}": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ai"
+                ],
+                "summary": "Get AI configuration for a camera",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Camera ID",
+                        "name": "cameraId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.AIConfig"
+                        }
+                    }
+                }
+            }
+        },
+        "/attendance/records": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "analytics"
+                ],
+                "summary": "List attendance records",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Identity ID",
+                        "name": "identity_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Status (late, on_time, absent, early_leave)",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.AttendanceRecordResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/attendance/summary": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "analytics"
+                ],
+                "summary": "Get daily attendance summary",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Date (YYYY-MM-DD)",
+                        "name": "date",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "integer",
+                                "format": "int64"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/audit-logs": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "audit"
+                ],
+                "summary": "List audit logs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "user_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Action",
+                        "name": "action",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Table Name",
+                        "name": "table",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Limit",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.AuditLogResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/login": {
             "post": {
                 "description": "Login with username and password to get access token",
@@ -28,7 +220,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_internal_core_domain.LoginRequest"
+                            "$ref": "#/definitions/domain.LoginRequest"
                         }
                     }
                 ],
@@ -36,7 +228,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/app_internal_core_domain.LoginResponse"
+                            "$ref": "#/definitions/domain.LoginResponse"
                         }
                     },
                     "401": {
@@ -71,7 +263,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_internal_core_domain.RegisterRequest"
+                            "$ref": "#/definitions/domain.RegisterRequest"
                         }
                     }
                 ],
@@ -79,7 +271,7 @@
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/app_internal_core_domain.User"
+                            "$ref": "#/definitions/domain.User"
                         }
                     },
                     "400": {
@@ -115,6 +307,12 @@
                         "description": "Filter by Zone ID",
                         "name": "zone_id",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "q",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -123,7 +321,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/app_internal_core_domain.Camera"
+                                "$ref": "#/definitions/domain.Camera"
                             }
                         }
                     }
@@ -153,7 +351,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_internal_core_domain.CreateCameraRequest"
+                            "$ref": "#/definitions/domain.CreateCameraRequest"
                         }
                     }
                 ],
@@ -161,7 +359,7 @@
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/app_internal_core_domain.Camera"
+                            "$ref": "#/definitions/domain.Camera"
                         }
                     },
                     "400": {
@@ -221,7 +419,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/app_internal_core_domain.Camera"
+                            "$ref": "#/definitions/domain.Camera"
                         }
                     },
                     "404": {
@@ -265,7 +463,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_internal_core_domain.UpdateCameraRequest"
+                            "$ref": "#/definitions/domain.UpdateCameraRequest"
                         }
                     }
                 ],
@@ -273,7 +471,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/app_internal_core_domain.Camera"
+                            "$ref": "#/definitions/domain.Camera"
                         }
                     },
                     "404": {
@@ -319,9 +517,102 @@
                 }
             }
         },
+        "/events": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ai"
+                ],
+                "summary": "List AI events",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Camera ID",
+                        "name": "camera_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Event Type",
+                        "name": "event_type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "From Date",
+                        "name": "from_date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "To Date",
+                        "name": "to_date",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.PaginatedResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/events/{id}": {
+            "patch": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ai"
+                ],
+                "summary": "Update AI event status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Event ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Status object",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.AIEvent"
+                        }
+                    }
+                }
+            }
+        },
         "/identities": {
             "get": {
-                "description": "Get paginated list of identities",
                 "consumes": [
                     "application/json"
                 ],
@@ -341,8 +632,14 @@
                     },
                     {
                         "type": "integer",
-                        "description": "Items per page",
+                        "description": "Limit",
                         "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "q",
                         "in": "query"
                     }
                 ],
@@ -350,13 +647,12 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_adapters_handler_http.PaginatedResponse"
+                            "$ref": "#/definitions/http.PaginatedResponse"
                         }
                     }
                 }
             },
             "post": {
-                "description": "Register a new face profile",
                 "consumes": [
                     "application/json"
                 ],
@@ -374,7 +670,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_internal_core_ports.CreateIdentityRequest"
+                            "$ref": "#/definitions/ports.CreateIdentityRequest"
                         }
                     }
                 ],
@@ -382,21 +678,69 @@
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/app_internal_core_domain.Identity"
+                            "$ref": "#/definitions/domain.Identity"
                         }
-                    },
-                    "400": {
-                        "description": "Bad Request",
+                    }
+                }
+            }
+        },
+        "/identities/enroll-face": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "identities"
+                ],
+                "summary": "Enroll a new face for an identity",
+                "parameters": [
+                    {
+                        "description": "Face Info",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_adapters_handler_http.ErrorResponse"
+                            "type": "object"
                         }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.IdentityFace"
+                        }
+                    }
+                }
+            }
+        },
+        "/identities/faces/{face_id}": {
+            "delete": {
+                "tags": [
+                    "identities"
+                ],
+                "summary": "Delete a face",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Face ID",
+                        "name": "face_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
                     }
                 }
             }
         },
         "/identities/{id}": {
             "get": {
-                "description": "Get info of a specific identity",
                 "consumes": [
                     "application/json"
                 ],
@@ -406,7 +750,7 @@
                 "tags": [
                     "identities"
                 ],
-                "summary": "Get identity details",
+                "summary": "Get an identity by ID",
                 "parameters": [
                     {
                         "type": "string",
@@ -420,19 +764,12 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/app_internal_core_domain.Identity"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/internal_adapters_handler_http.ErrorResponse"
+                            "$ref": "#/definitions/domain.Identity"
                         }
                     }
                 }
             },
             "put": {
-                "description": "Update name, phone or face image",
                 "consumes": [
                     "application/json"
                 ],
@@ -442,7 +779,7 @@
                 "tags": [
                     "identities"
                 ],
-                "summary": "Update identity info",
+                "summary": "Update an identity",
                 "parameters": [
                     {
                         "type": "string",
@@ -452,12 +789,12 @@
                         "required": true
                     },
                     {
-                        "description": "Update Info",
+                        "description": "Identity Update Info",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_internal_core_ports.UpdateIdentityRequest"
+                            "$ref": "#/definitions/ports.UpdateIdentityRequest"
                         }
                     }
                 ],
@@ -465,23 +802,16 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/app_internal_core_domain.Identity"
+                            "$ref": "#/definitions/domain.Identity"
                         }
                     }
                 }
             },
             "delete": {
-                "description": "Remove identity from system",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
                 "tags": [
                     "identities"
                 ],
-                "summary": "Delete identity (Soft delete)",
+                "summary": "Delete an identity",
                 "parameters": [
                     {
                         "type": "string",
@@ -500,7 +830,6 @@
         },
         "/identities/{id}/status": {
             "patch": {
-                "description": "Admin updates status",
                 "consumes": [
                     "application/json"
                 ],
@@ -510,7 +839,7 @@
                 "tags": [
                     "identities"
                 ],
-                "summary": "Approve or Reject identity",
+                "summary": "Update identity status",
                 "parameters": [
                     {
                         "type": "string",
@@ -520,17 +849,12 @@
                         "required": true
                     },
                     {
-                        "description": "Status (active/rejected)",
+                        "description": "Status object",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object",
-                            "properties": {
-                                "status": {
-                                    "type": "string"
-                                }
-                            }
+                            "type": "object"
                         }
                     }
                 ],
@@ -538,7 +862,545 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/app_internal_core_domain.Identity"
+                            "$ref": "#/definitions/domain.Identity"
+                        }
+                    }
+                }
+            }
+        },
+        "/media/upload": {
+            "post": {
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "media"
+                ],
+                "summary": "Upload an image",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Image file",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Subfolder name",
+                        "name": "folder",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/permissions/{userId}": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "permissions"
+                ],
+                "summary": "Get user permissions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ports.UserPermissions"
+                        }
+                    }
+                }
+            }
+        },
+        "/permissions/{userId}/cameras": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "permissions"
+                ],
+                "summary": "Update user camera permissions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Camera IDs array",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
+        },
+        "/permissions/{userId}/zones": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "permissions"
+                ],
+                "summary": "Update user zone permissions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Zone IDs array",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
+        },
+        "/recognition/logs": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "analytics"
+                ],
+                "summary": "List recognition logs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Identity ID",
+                        "name": "identity_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Camera ID",
+                        "name": "camera_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "From Date (RFC3339)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "To Date (RFC3339)",
+                        "name": "to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Limit",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.RecognitionLogResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/roles": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "roles"
+                ],
+                "summary": "List all roles",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "q",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/domain.Role"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "roles"
+                ],
+                "summary": "Create a new role",
+                "parameters": [
+                    {
+                        "description": "Role Info",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.Role"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/domain.Role"
+                        }
+                    }
+                }
+            }
+        },
+        "/roles/{id}": {
+            "get": {
+                "tags": [
+                    "roles"
+                ],
+                "summary": "Get role by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Role ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.Role"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "roles"
+                ],
+                "summary": "Update a role",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Role ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Role Info",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.Role"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.Role"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "roles"
+                ],
+                "summary": "Delete a role",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Role ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
+        },
+        "/stats/dashboard": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ai"
+                ],
+                "summary": "Get dashboard statistics",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.DashboardStats"
+                        }
+                    }
+                }
+            }
+        },
+        "/users": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "List all users",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "q",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/domain.User"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Create a new user",
+                "parameters": [
+                    {
+                        "description": "User Info",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.CreateWebUserRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/domain.User"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{id}": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Update a user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "User Info",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.UpdateWebUserRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.User"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "users"
+                ],
+                "summary": "Delete a user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
+        },
+        "/users/{user_id}/reset-password": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Reset user password",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "New Password",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -558,13 +1420,21 @@
                     "zones"
                 ],
                 "summary": "List all zones",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "q",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/app_internal_core_domain.Zone"
+                                "$ref": "#/definitions/domain.Zone"
                             }
                         }
                     }
@@ -593,7 +1463,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_internal_core_domain.CreateZoneRequest"
+                            "$ref": "#/definitions/domain.CreateZoneRequest"
                         }
                     }
                 ],
@@ -601,7 +1471,7 @@
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/app_internal_core_domain.Zone"
+                            "$ref": "#/definitions/domain.Zone"
                         }
                     },
                     "400": {
@@ -643,7 +1513,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/app_internal_core_domain.Zone"
+                            "$ref": "#/definitions/domain.Zone"
                         }
                     },
                     "404": {
@@ -687,7 +1557,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/app_internal_core_domain.UpdateZoneRequest"
+                            "$ref": "#/definitions/domain.UpdateZoneRequest"
                         }
                     }
                 ],
@@ -695,7 +1565,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/app_internal_core_domain.Zone"
+                            "$ref": "#/definitions/domain.Zone"
                         }
                     },
                     "404": {
@@ -743,7 +1613,173 @@
         }
     },
     "definitions": {
-        "app_internal_core_domain.Camera": {
+        "domain.AIConfig": {
+            "type": "object",
+            "properties": {
+                "active_hours": {
+                    "description": "JSONB"
+                },
+                "ai_enabled": {
+                    "type": "boolean"
+                },
+                "ai_types": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.EventType"
+                    }
+                },
+                "camera_id": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "min_confidence": {
+                    "type": "integer"
+                },
+                "roi_zones": {
+                    "description": "JSONB"
+                },
+                "sensitivity": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.AIEvent": {
+            "type": "object",
+            "properties": {
+                "camera_id": {
+                    "type": "string"
+                },
+                "confidence": {
+                    "type": "number"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "event_type": {
+                    "$ref": "#/definitions/domain.EventType"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "resolved_by": {
+                    "type": "string"
+                },
+                "snapshot_url": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/domain.EventStatus"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.AttendanceRecord": {
+            "type": "object",
+            "properties": {
+                "check_in": {
+                    "type": "string"
+                },
+                "check_out": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "identity_id": {
+                    "type": "string"
+                },
+                "identity_name": {
+                    "description": "Join fields",
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/domain.AttendanceStatus"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "work_hours": {
+                    "type": "number"
+                }
+            }
+        },
+        "domain.AttendanceStatus": {
+            "type": "string",
+            "enum": [
+                "late",
+                "on_time",
+                "absent",
+                "early_leave"
+            ],
+            "x-enum-varnames": [
+                "AttendanceLate",
+                "AttendanceOnTime",
+                "AttendanceAbsent",
+                "AttendanceEarlyLeave"
+            ]
+        },
+        "domain.AuditLog": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "ip_address": {
+                    "type": "string"
+                },
+                "new_value": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "old_value": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "record_id": {
+                    "type": "string"
+                },
+                "table_name": {
+                    "type": "string"
+                },
+                "user_agent": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                },
+                "username": {
+                    "description": "Join fields",
+                    "type": "string"
+                }
+            }
+        },
+        "domain.Camera": {
             "type": "object",
             "properties": {
                 "ai_enabled": {
@@ -765,7 +1801,7 @@
                     "type": "string"
                 },
                 "status": {
-                    "$ref": "#/definitions/app_internal_core_domain.CameraStatus"
+                    "$ref": "#/definitions/domain.CameraStatus"
                 },
                 "updated_at": {
                     "type": "string"
@@ -775,7 +1811,7 @@
                 }
             }
         },
-        "app_internal_core_domain.CameraStatus": {
+        "domain.CameraStatus": {
             "type": "string",
             "enum": [
                 "online",
@@ -788,7 +1824,7 @@
                 "CameraStatusMaintenance"
             ]
         },
-        "app_internal_core_domain.CreateCameraRequest": {
+        "domain.CreateCameraRequest": {
             "type": "object",
             "required": [
                 "name",
@@ -812,7 +1848,39 @@
                 }
             }
         },
-        "app_internal_core_domain.CreateZoneRequest": {
+        "domain.CreateWebUserRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "password",
+                "username"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string",
+                    "minLength": 6
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "role_id": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/domain.UserStatus"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.CreateZoneRequest": {
             "type": "object",
             "required": [
                 "name"
@@ -826,7 +1894,74 @@
                 }
             }
         },
-        "app_internal_core_domain.Identity": {
+        "domain.DashboardStats": {
+            "type": "object",
+            "properties": {
+                "maintenance_cameras": {
+                    "type": "integer"
+                },
+                "offline_cameras": {
+                    "type": "integer"
+                },
+                "online_cameras": {
+                    "type": "integer"
+                },
+                "recent_events": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.AIEvent"
+                    }
+                },
+                "today_events": {
+                    "type": "integer"
+                },
+                "total_cameras": {
+                    "type": "integer"
+                },
+                "unresolved_events": {
+                    "type": "integer"
+                }
+            }
+        },
+        "domain.EventStatus": {
+            "type": "string",
+            "enum": [
+                "new",
+                "processing",
+                "resolved",
+                "ignored"
+            ],
+            "x-enum-varnames": [
+                "EventStatusNew",
+                "EventStatusProcessing",
+                "EventStatusResolved",
+                "EventStatusIgnored"
+            ]
+        },
+        "domain.EventType": {
+            "type": "string",
+            "enum": [
+                "person",
+                "vehicle",
+                "face",
+                "intrusion",
+                "loitering",
+                "crowd",
+                "fire",
+                "other"
+            ],
+            "x-enum-varnames": [
+                "EventTypePerson",
+                "EventTypeVehicle",
+                "EventTypeFace",
+                "EventTypeIntrusion",
+                "EventTypeLoitering",
+                "EventTypeCrowd",
+                "EventTypeFire",
+                "EventTypeOther"
+            ]
+        },
+        "domain.Identity": {
             "type": "object",
             "properties": {
                 "approved_by": {
@@ -844,8 +1979,17 @@
                 "deleted_at": {
                     "type": "string"
                 },
+                "department": {
+                    "type": "string"
+                },
                 "face_image_url": {
                     "type": "string"
+                },
+                "faces": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.IdentityFace"
+                    }
                 },
                 "full_name": {
                     "type": "string"
@@ -856,6 +2000,10 @@
                 "identity_card_number": {
                     "type": "string"
                 },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
                 "note": {
                     "type": "string"
                 },
@@ -863,9 +2011,10 @@
                     "type": "string"
                 },
                 "status": {
-                    "$ref": "#/definitions/app_internal_core_domain.IdentityStatus"
+                    "$ref": "#/definitions/domain.IdentityStatus"
                 },
                 "type": {
+                    "description": "STAFF, STUDENT, VIP...",
                     "type": "string"
                 },
                 "updated_at": {
@@ -876,7 +2025,33 @@
                 }
             }
         },
-        "app_internal_core_domain.IdentityStatus": {
+        "domain.IdentityFace": {
+            "type": "object",
+            "properties": {
+                "blur_score": {
+                    "type": "number"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "identity_id": {
+                    "type": "string"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "is_primary": {
+                    "type": "boolean"
+                },
+                "quality_score": {
+                    "type": "number"
+                }
+            }
+        },
+        "domain.IdentityStatus": {
             "type": "string",
             "enum": [
                 "pending",
@@ -889,7 +2064,7 @@
                 "IdentityStatusRejected"
             ]
         },
-        "app_internal_core_domain.LoginRequest": {
+        "domain.LoginRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -905,18 +2080,57 @@
                 }
             }
         },
-        "app_internal_core_domain.LoginResponse": {
+        "domain.LoginResponse": {
             "type": "object",
             "properties": {
                 "access_token": {
                     "type": "string"
                 },
                 "user": {
-                    "$ref": "#/definitions/app_internal_core_domain.User"
+                    "$ref": "#/definitions/domain.User"
                 }
             }
         },
-        "app_internal_core_domain.RegisterRequest": {
+        "domain.RecognitionLog": {
+            "type": "object",
+            "properties": {
+                "camera_id": {
+                    "type": "string"
+                },
+                "camera_name": {
+                    "type": "string"
+                },
+                "confidence": {
+                    "type": "number"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "face_crop_url": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "identity_id": {
+                    "type": "string"
+                },
+                "identity_name": {
+                    "description": "Join fields",
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "occurred_at": {
+                    "type": "string"
+                },
+                "snapshot_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.RegisterRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -939,7 +2153,33 @@
                 }
             }
         },
-        "app_internal_core_domain.UpdateCameraRequest": {
+        "domain.Role": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_system": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "permissions": {
+                    "description": "JSONB"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.UpdateCameraRequest": {
             "type": "object",
             "properties": {
                 "ai_enabled": {
@@ -956,14 +2196,31 @@
                     "type": "string"
                 },
                 "status": {
-                    "$ref": "#/definitions/app_internal_core_domain.CameraStatus"
+                    "$ref": "#/definitions/domain.CameraStatus"
                 },
                 "zone_id": {
                     "type": "string"
                 }
             }
         },
-        "app_internal_core_domain.UpdateZoneRequest": {
+        "domain.UpdateWebUserRequest": {
+            "type": "object",
+            "properties": {
+                "full_name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "role_id": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/domain.UserStatus"
+                }
+            }
+        },
+        "domain.UpdateZoneRequest": {
             "type": "object",
             "properties": {
                 "description": {
@@ -974,7 +2231,7 @@
                 }
             }
         },
-        "app_internal_core_domain.User": {
+        "domain.User": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -1000,7 +2257,7 @@
                     "type": "string"
                 },
                 "status": {
-                    "$ref": "#/definitions/app_internal_core_domain.UserStatus"
+                    "$ref": "#/definitions/domain.UserStatus"
                 },
                 "updated_at": {
                     "type": "string"
@@ -1010,7 +2267,7 @@
                 }
             }
         },
-        "app_internal_core_domain.UserStatus": {
+        "domain.UserStatus": {
             "type": "string",
             "enum": [
                 "active",
@@ -1023,7 +2280,7 @@
                 "UserStatusBanned"
             ]
         },
-        "app_internal_core_domain.Zone": {
+        "domain.Zone": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -1040,13 +2297,59 @@
                 }
             }
         },
-        "app_internal_core_ports.CreateIdentityRequest": {
+        "http.AttendanceRecordResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.AttendanceRecord"
+                    }
+                }
+            }
+        },
+        "http.AuditLogResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.AuditLog"
+                    }
+                }
+            }
+        },
+        "http.PaginatedResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "http.RecognitionLogResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.RecognitionLog"
+                    }
+                }
+            }
+        },
+        "ports.CreateIdentityRequest": {
             "type": "object",
             "required": [
                 "code",
-                "face_image_url",
-                "full_name",
-                "type"
+                "full_name"
             ],
             "properties": {
                 "code": {
@@ -1055,7 +2358,7 @@
                 "createdBy": {
                     "type": "string"
                 },
-                "face_image_url": {
+                "department": {
                     "type": "string"
                 },
                 "full_name": {
@@ -1063,6 +2366,38 @@
                 },
                 "identity_card_number": {
                     "type": "string"
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "note": {
+                    "type": "string"
+                },
+                "phone_number": {
+                    "type": "string"
+                },
+                "type": {
+                    "description": "STAFF, STUDENT, VIP...",
+                    "type": "string"
+                }
+            }
+        },
+        "ports.UpdateIdentityRequest": {
+            "type": "object",
+            "properties": {
+                "department": {
+                    "type": "string"
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "identity_card_number": {
+                    "type": "string"
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": {}
                 },
                 "note": {
                     "type": "string"
@@ -1075,40 +2410,20 @@
                 }
             }
         },
-        "app_internal_core_ports.UpdateIdentityRequest": {
+        "ports.UserPermissions": {
             "type": "object",
             "properties": {
-                "face_image_url": {
-                    "type": "string"
+                "camera_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
-                "full_name": {
-                    "type": "string"
-                },
-                "phone_number": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_adapters_handler_http.ErrorResponse": {
-            "type": "object",
-            "properties": {
-                "error": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_adapters_handler_http.PaginatedResponse": {
-            "type": "object",
-            "properties": {
-                "data": {},
-                "limit": {
-                    "type": "integer"
-                },
-                "page": {
-                    "type": "integer"
-                },
-                "total": {
-                    "type": "integer"
+                "zone_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         }

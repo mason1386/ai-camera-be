@@ -2,14 +2,11 @@ package postgres
 
 import (
 	"context"
-	"fmt"
-	"time"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
-	"app/internal/adapters/storage/postgres/generated"
 	"app/internal/core/domain"
 	"app/internal/core/ports"
+
+	"github.com/jackc/pgx/v5"
 )
 
 type UserRepository struct {
@@ -21,89 +18,75 @@ func NewUserRepository(db *PostgresDB) ports.UserRepository {
 }
 
 func (r *UserRepository) Save(ctx context.Context, user *domain.User) error {
-	params := generated.CreateUserParams{
-		Username:     user.Username,
-		Email:        user.Email,
-		PasswordHash: user.PasswordHash,
-		FullName:     pgtype.Text{String: user.FullName, Valid: user.FullName != ""},
-		Status:       pgtype.Text{String: string(user.Status), Valid: true},
-	}
-
-	result, err := r.db.Query.CreateUser(ctx, params)
-	if err != nil {
-		return fmt.Errorf("failed to save user: %w", err)
-	}
-
-	// UUID to String conversion
-	user.ID = fmt.Sprintf("%x-%x-%x-%x-%x", result.ID.Bytes[0:4], result.ID.Bytes[4:6], result.ID.Bytes[6:8], result.ID.Bytes[8:10], result.ID.Bytes[10:16])
-	user.CreatedAt = result.CreatedAt.Time
-	user.UpdatedAt = result.UpdatedAt.Time
-	return nil
-}
-
-func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*domain.User, error) {
-	row, err := r.db.Query.GetUserByUsername(ctx, username)
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("failed to get user by username: %w", err)
-	}
-	return mapUserEntity(row), nil
+	query := `INSERT INTO users (username, email, password_hash, full_name, phone, role_id, status, updated_at) 
+	          VALUES ($1, $2, $3, $4, $5, $6, $7, NOW()) RETURNING id, created_at, updated_at`
+	return r.db.Pool.QueryRow(ctx, query, user.Username, user.Email, user.PasswordHash, user.FullName, user.Phone, user.RoleID, user.Status).
+		Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
 }
 
 func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
-	row, err := r.db.Query.GetUserByEmail(ctx, email)
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("failed to get user by email: %w", err)
-	}
-	return mapUserEntity(row), nil
+	query := `SELECT id, username, email, password_hash, COALESCE(full_name, ''), COALESCE(phone, ''), role_id, COALESCE(status, 'active'), last_login_at, created_at, updated_at FROM users WHERE email = $1`
+	return r.scanUser(r.db.Pool.QueryRow(ctx, query, email))
+}
+
+func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*domain.User, error) {
+	query := `SELECT id, username, email, password_hash, COALESCE(full_name, ''), COALESCE(phone, ''), role_id, COALESCE(status, 'active'), last_login_at, created_at, updated_at FROM users WHERE username = $1`
+	return r.scanUser(r.db.Pool.QueryRow(ctx, query, username))
 }
 
 func (r *UserRepository) GetByID(ctx context.Context, id string) (*domain.User, error) {
-	var uuid pgtype.UUID
-	if err := uuid.Scan(id); err != nil {
-		return nil, fmt.Errorf("invalid uuid format: %w", err)
-	}
+	query := `SELECT id, username, email, password_hash, COALESCE(full_name, ''), COALESCE(phone, ''), role_id, COALESCE(status, 'active'), last_login_at, created_at, updated_at FROM users WHERE id = $1`
+	return r.scanUser(r.db.Pool.QueryRow(ctx, query, id))
+}
 
-	row, err := r.db.Query.GetUserByID(ctx, uuid)
+func (r *UserRepository) scanUser(row pgx.Row) (*domain.User, error) {
+	user := &domain.User{}
+	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash, &user.FullName, &user.Phone, &user.RoleID, &user.Status, &user.LastLoginAt, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, nil
 		}
-		return nil, fmt.Errorf("failed to get user by id: %w", err)
+		return nil, err
 	}
-	return mapUserEntity(row), nil
+	return user, nil
 }
 
-// Mapper function to convert DB model to Domain model
-func mapUserEntity(row generated.User) *domain.User {
-	var lastLogin *time.Time
-	if row.LastLoginAt.Valid {
-		t := row.LastLoginAt.Time
-		lastLogin = &t
+func (r *UserRepository) List(ctx context.Context, search string) ([]*domain.User, error) {
+	query := `SELECT id, username, email, password_hash, COALESCE(full_name, ''), COALESCE(phone, ''), role_id, COALESCE(status, 'active'), last_login_at, created_at, updated_at FROM users`
+	var args []interface{}
+
+	if search != "" {
+		query += ` WHERE username ILIKE $1 OR full_name ILIKE $1 OR email ILIKE $1`
+		args = append(args, "%"+search+"%")
 	}
 
-	// UUID to String
-	idStr := fmt.Sprintf("%x-%x-%x-%x-%x", row.ID.Bytes[0:4], row.ID.Bytes[4:6], row.ID.Bytes[6:8], row.ID.Bytes[8:10], row.ID.Bytes[10:16])
+	query += ` ORDER BY created_at DESC`
 
-	var roleIDPtr *string
-	// if row.RoleID.Valid { ... }
-
-	return &domain.User{
-		ID:           idStr,
-		Username:     row.Username,
-		Email:        row.Email,
-		PasswordHash: row.PasswordHash,
-		FullName:     row.FullName.String,
-		Phone:        row.Phone.String,
-		RoleID:       roleIDPtr,
-		Status:       domain.UserStatus(row.Status.String),
-		LastLoginAt:  lastLogin,
-		CreatedAt:    row.CreatedAt.Time,
-		UpdatedAt:    row.UpdatedAt.Time,
+	rows, err := r.db.Pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, err
 	}
+	defer rows.Close()
+
+	users := []*domain.User{}
+	for rows.Next() {
+		user := &domain.User{}
+		err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash, &user.FullName, &user.Phone, &user.RoleID, &user.Status, &user.LastLoginAt, &user.CreatedAt, &user.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+	return users, nil
+}
+
+func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
+	query := `UPDATE users SET full_name = $2, phone = $3, role_id = $4, status = $5, updated_at = NOW(), password_hash = $6 WHERE id = $1`
+	_, err := r.db.Pool.Exec(ctx, query, user.ID, user.FullName, user.Phone, user.RoleID, user.Status, user.PasswordHash)
+	return err
+}
+
+func (r *UserRepository) Delete(ctx context.Context, id string) error {
+	_, err := r.db.Pool.Exec(ctx, "DELETE FROM users WHERE id = $1", id)
+	return err
 }

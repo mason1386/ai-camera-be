@@ -2,13 +2,11 @@ package postgres
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
-	"app/internal/adapters/storage/postgres/generated"
 	"app/internal/core/domain"
 	"app/internal/core/ports"
+
+	"github.com/jackc/pgx/v5"
 )
 
 type CameraRepository struct {
@@ -16,139 +14,96 @@ type CameraRepository struct {
 }
 
 func NewCameraRepository(db *PostgresDB) ports.CameraRepository {
-	return &CameraRepository{
-		db: db,
-	}
+	return &CameraRepository{db: db}
 }
 
 func (r *CameraRepository) Save(ctx context.Context, camera *domain.Camera) error {
-	params := generated.CreateCameraParams{
-		ZoneID:    pgtype.UUID{Valid: false},
-		Name:      camera.Name,
-		IpAddress: pgtype.Text{String: camera.IPAddress, Valid: camera.IPAddress != ""},
-		RtspUrl:   camera.RTSPURL,
-		Status:    pgtype.Text{String: string(camera.Status), Valid: true},
-		AiEnabled: pgtype.Bool{Bool: camera.AIEnabled, Valid: true},
-	}
-
-	if camera.ZoneID != nil {
-		var zoneUUID pgtype.UUID
-		if err := zoneUUID.Scan(*camera.ZoneID); err == nil {
-			params.ZoneID = zoneUUID
-		}
-	}
-
-	result, err := r.db.Query.CreateCamera(ctx, params)
-	if err != nil {
-		return fmt.Errorf("failed to insert camera: %w", err)
-	}
-
-	camera.ID = uuidToString(result.ID)
-	camera.CreatedAt = result.CreatedAt.Time
-	camera.UpdatedAt = result.UpdatedAt.Time
-	return nil
+	query := `INSERT INTO cameras (zone_id, name, ip_address, rtsp_url, status, ai_enabled, updated_at) 
+	          VALUES ($1, $2, $3, $4, $5, $6, NOW()) RETURNING id, created_at, updated_at`
+	return r.db.Pool.QueryRow(ctx, query, camera.ZoneID, camera.Name, camera.IPAddress, camera.RTSPURL, camera.Status, camera.AIEnabled).
+		Scan(&camera.ID, &camera.CreatedAt, &camera.UpdatedAt)
 }
 
 func (r *CameraRepository) GetByID(ctx context.Context, id string) (*domain.Camera, error) {
-	var uuid pgtype.UUID
-	if err := uuid.Scan(id); err != nil {
-		return nil, fmt.Errorf("invalid uuid: %w", err)
-	}
-
-	row, err := r.db.Query.GetCamera(ctx, uuid)
+	query := `SELECT id, zone_id, name, ip_address, rtsp_url, status, ai_enabled, created_at, updated_at FROM cameras WHERE id = $1`
+	camera := &domain.Camera{}
+	err := r.db.Pool.QueryRow(ctx, query, id).Scan(
+		&camera.ID, &camera.ZoneID, &camera.Name, &camera.IPAddress, &camera.RTSPURL, &camera.Status, &camera.AIEnabled, &camera.CreatedAt, &camera.UpdatedAt,
+	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, nil
 		}
 		return nil, err
 	}
-	return mapCameraEntity(row), nil
+	return camera, nil
 }
 
-func (r *CameraRepository) List(ctx context.Context) ([]*domain.Camera, error) {
-	rows, err := r.db.Query.ListCameras(ctx)
+func (r *CameraRepository) List(ctx context.Context, search string) ([]*domain.Camera, error) {
+	query := `SELECT id, zone_id, name, ip_address, rtsp_url, status, ai_enabled, created_at, updated_at FROM cameras`
+	var args []interface{}
+
+	if search != "" {
+		query += ` WHERE name ILIKE $1 OR ip_address ILIKE $1`
+		args = append(args, "%"+search+"%")
+	}
+
+	query += ` ORDER BY created_at DESC`
+
+	rows, err := r.db.Pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
-	cameras := make([]*domain.Camera, len(rows))
-	for i, row := range rows {
-		cameras[i] = mapCameraEntity(row)
+	defer rows.Close()
+
+	cameras := []*domain.Camera{}
+	for rows.Next() {
+		camera := &domain.Camera{}
+		err := rows.Scan(&camera.ID, &camera.ZoneID, &camera.Name, &camera.IPAddress, &camera.RTSPURL, &camera.Status, &camera.AIEnabled, &camera.CreatedAt, &camera.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		cameras = append(cameras, camera)
 	}
 	return cameras, nil
 }
 
-func (r *CameraRepository) ListByZone(ctx context.Context, zoneID string) ([]*domain.Camera, error) {
-	var uuid pgtype.UUID
-	if err := uuid.Scan(zoneID); err != nil {
-		return nil, fmt.Errorf("invalid uuid: %w", err)
+func (r *CameraRepository) ListByZone(ctx context.Context, zoneID string, search string) ([]*domain.Camera, error) {
+	query := `SELECT id, zone_id, name, ip_address, rtsp_url, status, ai_enabled, created_at, updated_at FROM cameras WHERE zone_id = $1`
+	args := []interface{}{zoneID}
+
+	if search != "" {
+		query += ` AND (name ILIKE $2 OR ip_address ILIKE $2)`
+		args = append(args, "%"+search+"%")
 	}
 
-	rows, err := r.db.Query.ListCamerasByZone(ctx, pgtype.UUID{Bytes: uuid.Bytes, Valid: true})
+	query += ` ORDER BY created_at DESC`
+
+	rows, err := r.db.Pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
-	cameras := make([]*domain.Camera, len(rows))
-	for i, row := range rows {
-		cameras[i] = mapCameraEntity(row)
+	defer rows.Close()
+
+	cameras := []*domain.Camera{}
+	for rows.Next() {
+		camera := &domain.Camera{}
+		err := rows.Scan(&camera.ID, &camera.ZoneID, &camera.Name, &camera.IPAddress, &camera.RTSPURL, &camera.Status, &camera.AIEnabled, &camera.CreatedAt, &camera.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		cameras = append(cameras, camera)
 	}
 	return cameras, nil
 }
 
 func (r *CameraRepository) Update(ctx context.Context, camera *domain.Camera) error {
-	var idUUID pgtype.UUID
-	if err := idUUID.Scan(camera.ID); err != nil {
-		return fmt.Errorf("invalid uuid: %w", err)
-	}
-
-	params := generated.UpdateCameraParams{
-		ID:        idUUID,
-		Name:      camera.Name,
-		IpAddress: pgtype.Text{String: camera.IPAddress, Valid: camera.IPAddress != ""},
-		RtspUrl:   camera.RTSPURL,
-		Status:    pgtype.Text{String: string(camera.Status), Valid: true},
-		AiEnabled: pgtype.Bool{Bool: camera.AIEnabled, Valid: true},
-		ZoneID:    pgtype.UUID{Valid: false},
-	}
-
-	if camera.ZoneID != nil {
-		var zoneUUID pgtype.UUID
-		if err := zoneUUID.Scan(*camera.ZoneID); err == nil {
-			params.ZoneID = zoneUUID
-		}
-	}
-
-	_, err := r.db.Query.UpdateCamera(ctx, params)
+	query := `UPDATE cameras SET zone_id = $2, name = $3, ip_address = $4, rtsp_url = $5, status = $6, ai_enabled = $7, updated_at = NOW() WHERE id = $1`
+	_, err := r.db.Pool.Exec(ctx, query, camera.ID, camera.ZoneID, camera.Name, camera.IPAddress, camera.RTSPURL, camera.Status, camera.AIEnabled)
 	return err
 }
 
 func (r *CameraRepository) Delete(ctx context.Context, id string) error {
-	var uuid pgtype.UUID
-	if err := uuid.Scan(id); err != nil {
-		return fmt.Errorf("invalid uuid: %w", err)
-	}
-	return r.db.Query.DeleteCamera(ctx, uuid)
-}
-
-func mapCameraEntity(row generated.Camera) *domain.Camera {
-	var zoneIDPtr *string
-	if row.ZoneID.Valid {
-		s := uuidToString(row.ZoneID)
-		zoneIDPtr = &s
-	}
-
-	return &domain.Camera{
-		ID:        uuidToString(row.ID),
-		ZoneID:    zoneIDPtr,
-		Name:      row.Name,
-		IPAddress: row.IpAddress.String,
-		RTSPURL:   row.RtspUrl,
-		Status:    domain.CameraStatus(row.Status.String),
-		AIEnabled: row.AiEnabled.Bool,
-		CreatedAt: row.CreatedAt.Time,
-		UpdatedAt: row.UpdatedAt.Time,
-	}
-}
-
-func uuidToString(uuid pgtype.UUID) string {
-	return fmt.Sprintf("%x-%x-%x-%x-%x", uuid.Bytes[0:4], uuid.Bytes[4:6], uuid.Bytes[6:8], uuid.Bytes[8:10], uuid.Bytes[10:16])
+	_, err := r.db.Pool.Exec(ctx, "DELETE FROM cameras WHERE id = $1", id)
+	return err
 }

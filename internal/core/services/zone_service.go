@@ -6,6 +6,7 @@ import (
 	"app/internal/core/domain"
 	"app/internal/core/ports"
 	"app/pkg/logger"
+
 	"go.uber.org/zap"
 )
 
@@ -38,8 +39,8 @@ func (s *ZoneService) GetZone(ctx context.Context, id string) (*domain.Zone, err
 	return s.repo.GetByID(ctx, id)
 }
 
-func (s *ZoneService) ListZones(ctx context.Context) ([]*domain.Zone, error) {
-	return s.repo.List(ctx)
+func (s *ZoneService) ListZones(ctx context.Context, search string) ([]*domain.Zone, error) {
+	return s.repo.List(ctx, search)
 }
 
 func (s *ZoneService) UpdateZone(ctx context.Context, id string, req *domain.UpdateZoneRequest) (*domain.Zone, error) {

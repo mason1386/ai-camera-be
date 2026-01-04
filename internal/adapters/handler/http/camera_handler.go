@@ -3,9 +3,10 @@ package http
 import (
 	"net/http"
 
-	"github.com/gin-gonic/gin"
 	"app/internal/core/domain"
 	"app/internal/core/ports"
+
+	"github.com/gin-gonic/gin"
 )
 
 type CameraHandler struct {
@@ -56,12 +57,14 @@ func (h *CameraHandler) CreateCamera(c *gin.Context) {
 // @Tags cameras
 // @Produce json
 // @Param zone_id query string false "Filter by Zone ID"
+// @Param q query string false "Search query"
 // @Success 200 {array} domain.Camera
 // @Security BearerAuth
 // @Router /cameras [get]
 func (h *CameraHandler) ListCameras(c *gin.Context) {
 	zoneID := c.Query("zone_id")
-	cameras, err := h.service.ListCameras(c.Request.Context(), zoneID)
+	search := c.Query("q")
+	cameras, err := h.service.ListCameras(c.Request.Context(), zoneID, search)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

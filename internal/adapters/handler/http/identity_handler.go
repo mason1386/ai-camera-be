@@ -23,13 +23,11 @@ func NewIdentityHandler(service ports.IdentityService) *IdentityHandler {
 
 // CreateIdentity godoc
 // @Summary Create a new identity
-// @Description Register a new face profile
 // @Tags identities
 // @Accept json
 // @Produce json
 // @Param request body ports.CreateIdentityRequest true "Identity Info"
 // @Success 201 {object} domain.Identity
-// @Failure 400 {object} ErrorResponse
 // @Router /identities [post]
 func (h *IdentityHandler) CreateIdentity(c *gin.Context) {
 	var req ports.CreateIdentityRequest
@@ -38,7 +36,6 @@ func (h *IdentityHandler) CreateIdentity(c *gin.Context) {
 		return
 	}
 
-	// Get user ID from context (set by AuthMiddleware)
 	userIDStr, exists := c.Get("userID")
 	if exists {
 		if uid, err := uuid.Parse(userIDStr.(string)); err == nil {
@@ -57,19 +54,20 @@ func (h *IdentityHandler) CreateIdentity(c *gin.Context) {
 
 // ListIdentities godoc
 // @Summary List identities
-// @Description Get paginated list of identities
 // @Tags identities
 // @Accept json
 // @Produce json
 // @Param page query int false "Page number"
-// @Param limit query int false "Items per page"
+// @Param limit query int false "Limit"
+// @Param q query string false "Search query"
 // @Success 200 {object} PaginatedResponse
 // @Router /identities [get]
 func (h *IdentityHandler) ListIdentities(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	search := c.Query("q")
 
-	items, total, err := h.service.ListIdentities(c.Request.Context(), page, limit)
+	items, total, err := h.service.ListIdentities(c.Request.Context(), page, limit, search)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
 		return
@@ -84,14 +82,12 @@ func (h *IdentityHandler) ListIdentities(c *gin.Context) {
 }
 
 // GetIdentity godoc
-// @Summary Get identity details
-// @Description Get info of a specific identity
+// @Summary Get an identity by ID
 // @Tags identities
 // @Accept json
 // @Produce json
 // @Param id path string true "Identity ID"
 // @Success 200 {object} domain.Identity
-// @Failure 404 {object} ErrorResponse
 // @Router /identities/{id} [get]
 func (h *IdentityHandler) GetIdentity(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
@@ -114,13 +110,12 @@ func (h *IdentityHandler) GetIdentity(c *gin.Context) {
 }
 
 // UpdateIdentity godoc
-// @Summary Update identity info
-// @Description Update name, phone or face image
+// @Summary Update an identity
 // @Tags identities
 // @Accept json
 // @Produce json
 // @Param id path string true "Identity ID"
-// @Param request body ports.UpdateIdentityRequest true "Update Info"
+// @Param request body ports.UpdateIdentityRequest true "Identity Update Info"
 // @Success 200 {object} domain.Identity
 // @Router /identities/{id} [put]
 func (h *IdentityHandler) UpdateIdentity(c *gin.Context) {
@@ -146,13 +141,12 @@ func (h *IdentityHandler) UpdateIdentity(c *gin.Context) {
 }
 
 // UpdateStatus godoc
-// @Summary Approve or Reject identity
-// @Description Admin updates status
+// @Summary Update identity status
 // @Tags identities
 // @Accept json
 // @Produce json
 // @Param id path string true "Identity ID"
-// @Param request body object{status=string} true "Status (active/rejected)"
+// @Param request body object true "Status object"
 // @Success 200 {object} domain.Identity
 // @Router /identities/{id}/status [patch]
 func (h *IdentityHandler) UpdateStatus(c *gin.Context) {
@@ -170,16 +164,7 @@ func (h *IdentityHandler) UpdateStatus(c *gin.Context) {
 		return
 	}
 
-	// Mocking approved by user ID from context
-	approvedBy := uuid.Nil
-	userIDStr, exists := c.Get("userID")
-	if exists {
-		if uid, err := uuid.Parse(userIDStr.(string)); err == nil {
-			approvedBy = uid
-		}
-	}
-
-	identity, err := h.service.UpdateStatus(c.Request.Context(), id, domain.IdentityStatus(req.Status), approvedBy)
+	identity, err := h.service.UpdateStatus(c.Request.Context(), id, domain.IdentityStatus(req.Status))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
 		return
@@ -189,13 +174,10 @@ func (h *IdentityHandler) UpdateStatus(c *gin.Context) {
 }
 
 // DeleteIdentity godoc
-// @Summary Delete identity (Soft delete)
-// @Description Remove identity from system
+// @Summary Delete an identity
 // @Tags identities
-// @Accept json
-// @Produce json
 // @Param id path string true "Identity ID"
-// @Success 204
+// @Success 204 "No Content"
 // @Router /identities/{id} [delete]
 func (h *IdentityHandler) DeleteIdentity(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("id"))
@@ -212,13 +194,45 @@ func (h *IdentityHandler) DeleteIdentity(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-type PaginatedResponse struct {
-	Data  interface{} `json:"data"`
-	Total int64       `json:"total"`
-	Page  int         `json:"page"`
-	Limit int         `json:"limit"`
+// EnrollFace godoc
+// @Summary Enroll a new face for an identity
+// @Tags identities
+// @Accept json
+// @Produce json
+// @Param request body object true "Face Info"
+// @Success 200 {object} domain.IdentityFace
+// @Router /identities/enroll-face [post]
+func (h *IdentityHandler) EnrollFace(c *gin.Context) {
+	var req struct {
+		IdentityID string `json:"identity_id" binding:"required"`
+		ImageURL   string `json:"image_url" binding:"required"`
+		IsPrimary  bool   `json:"is_primary"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	uid, _ := uuid.Parse(req.IdentityID)
+	face, err := h.service.EnrollFace(c.Request.Context(), uid, req.ImageURL, req.IsPrimary)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, face)
 }
 
-type ErrorResponse struct {
-	Error string `json:"error"`
+// DeleteFace godoc
+// @Summary Delete a face
+// @Tags identities
+// @Param face_id path string true "Face ID"
+// @Success 204 "No Content"
+// @Router /identities/faces/{face_id} [delete]
+func (h *IdentityHandler) DeleteFace(c *gin.Context) {
+	id, _ := uuid.Parse(c.Param("face_id"))
+	if err := h.service.DeleteFace(c.Request.Context(), id); err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
 }

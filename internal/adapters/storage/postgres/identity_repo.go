@@ -2,13 +2,13 @@ package postgres
 
 import (
 	"context"
+	"fmt"
 
-	"app/internal/adapters/storage/postgres/generated"
 	"app/internal/core/domain"
 	"app/internal/core/ports"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5"
 )
 
 type IdentityRepository struct {
@@ -22,138 +22,237 @@ func NewIdentityRepository(db *PostgresDB) ports.IdentityRepository {
 }
 
 func (r *IdentityRepository) CreateIdentity(ctx context.Context, identity *domain.Identity) (*domain.Identity, error) {
-	params := generated.CreateIdentityParams{
-		Code:               identity.Code,
-		FullName:           identity.FullName,
-		PhoneNumber:        pgtype.Text{String: identity.PhoneNumber, Valid: identity.PhoneNumber != ""},
-		IdentityCardNumber: pgtype.Text{String: identity.IdentityCardNumber, Valid: identity.IdentityCardNumber != ""},
-		FaceImageUrl:       identity.FaceImageURL,
-		Type:               identity.Type,
-		Status:             generated.NullIdentityStatus{IdentityStatus: generated.IdentityStatus(identity.Status), Valid: true},
-		Note:               pgtype.Text{String: identity.Note, Valid: identity.Note != ""},
-	}
+	query := `
+		INSERT INTO identities (
+			code, full_name, type, phone_number, identity_card_number, face_image_url, department, metadata, status, note, created_by, approved_by, user_account_id
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+		) RETURNING id, created_at, updated_at`
 
-	if identity.CreatedBy != nil {
-		params.CreatedBy = pgtype.UUID{Bytes: *identity.CreatedBy, Valid: true}
-	}
+	err := r.db.Pool.QueryRow(ctx, query,
+		identity.Code,
+		identity.FullName,
+		identity.Type,
+		identity.PhoneNumber,
+		identity.IdentityCardNumber,
+		identity.FaceImageURL,
+		identity.Department,
+		identity.Metadata,
+		identity.Status,
+		identity.Note,
+		identity.CreatedBy,
+		identity.ApprovedBy,
+		identity.UserAccountID,
+	).Scan(&identity.ID, &identity.CreatedAt, &identity.UpdatedAt)
 
-	row, err := r.db.Query.CreateIdentity(ctx, params)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create identity: %w", err)
 	}
 
-	return r.toDomain(row), nil
+	return identity, nil
 }
 
 func (r *IdentityRepository) GetIdentity(ctx context.Context, id uuid.UUID) (*domain.Identity, error) {
-	row, err := r.db.Query.GetIdentity(ctx, pgtype.UUID{Bytes: id, Valid: true})
+	query := `SELECT id, COALESCE(code, ''), COALESCE(full_name, ''), COALESCE(type, ''), phone_number, identity_card_number, face_image_url, COALESCE(department, ''), metadata, COALESCE(status, 'active'), note, created_by, approved_by, user_account_id, created_at, updated_at, deleted_at 
+	          FROM identities WHERE id = $1 AND deleted_at IS NULL`
+
+	identity := &domain.Identity{}
+	err := r.db.Pool.QueryRow(ctx, query, id).Scan(
+		&identity.ID, &identity.Code, &identity.FullName, &identity.Type,
+		&identity.PhoneNumber, &identity.IdentityCardNumber, &identity.FaceImageURL, &identity.Department,
+		&identity.Metadata, &identity.Status, &identity.Note, &identity.CreatedBy,
+		&identity.ApprovedBy, &identity.UserAccountID,
+		&identity.CreatedAt, &identity.UpdatedAt, &identity.DeletedAt,
+	)
+
 	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
 		return nil, err
 	}
-	return r.toDomain(row), nil
+	return identity, nil
 }
 
 func (r *IdentityRepository) GetIdentityByCode(ctx context.Context, code string) (*domain.Identity, error) {
-	row, err := r.db.Query.GetIdentityByCode(ctx, code)
+	query := `SELECT id, COALESCE(code, ''), COALESCE(full_name, ''), COALESCE(type, ''), phone_number, identity_card_number, face_image_url, COALESCE(department, ''), metadata, COALESCE(status, 'active'), note, created_by, approved_by, user_account_id, created_at, updated_at, deleted_at 
+	          FROM identities WHERE code = $1 AND deleted_at IS NULL`
+
+	identity := &domain.Identity{}
+	err := r.db.Pool.QueryRow(ctx, query, code).Scan(
+		&identity.ID, &identity.Code, &identity.FullName, &identity.Type,
+		&identity.PhoneNumber, &identity.IdentityCardNumber, &identity.FaceImageURL, &identity.Department,
+		&identity.Metadata, &identity.Status, &identity.Note, &identity.CreatedBy,
+		&identity.ApprovedBy, &identity.UserAccountID,
+		&identity.CreatedAt, &identity.UpdatedAt, &identity.DeletedAt,
+	)
+
 	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
 		return nil, err
 	}
-	return r.toDomain(row), nil
+	return identity, nil
 }
 
-func (r *IdentityRepository) ListIdentities(ctx context.Context, limit, offset int32) ([]*domain.Identity, error) {
-	rows, err := r.db.Query.ListIdentities(ctx, generated.ListIdentitiesParams{
-		Limit:  limit,
-		Offset: offset,
-	})
-	if err != nil {
-		return nil, err
+func (r *IdentityRepository) ListIdentities(ctx context.Context, page, limit int, search string) ([]*domain.Identity, int64, error) {
+	offset := (page - 1) * limit
+
+	whereClause := "WHERE deleted_at IS NULL"
+	var args []interface{}
+	argIdx := 1
+
+	if search != "" {
+		whereClause += fmt.Sprintf(" AND full_name ILIKE $%d", argIdx)
+		args = append(args, "%"+search+"%")
+		argIdx++
 	}
 
-	identities := make([]*domain.Identity, len(rows))
-	for i, row := range rows {
-		identities[i] = r.toDomain(row)
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM identities %s", whereClause)
+	var total int64
+	err := r.db.Pool.QueryRow(ctx, countQuery, args...).Scan(&total)
+	if err != nil {
+		return nil, 0, err
 	}
-	return identities, nil
+
+	query := fmt.Sprintf(`
+		SELECT id, COALESCE(code, ''), COALESCE(full_name, ''), COALESCE(type, ''), COALESCE(department, ''), COALESCE(status, 'active'), created_at, updated_at
+		FROM identities
+		%s
+		ORDER BY created_at DESC
+		LIMIT $%d OFFSET $%d
+	`, whereClause, argIdx, argIdx+1)
+
+	args = append(args, limit, offset)
+
+	rows, err := r.db.Pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	identities := []*domain.Identity{}
+	for rows.Next() {
+		identity := &domain.Identity{}
+		err := rows.Scan(
+			&identity.ID, &identity.Code, &identity.FullName, &identity.Type,
+			&identity.Department, &identity.Status,
+			&identity.CreatedAt, &identity.UpdatedAt,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
+		identities = append(identities, identity)
+	}
+
+	return identities, total, nil
 }
 
 func (r *IdentityRepository) CountIdentities(ctx context.Context) (int64, error) {
-	return r.db.Query.CountIdentities(ctx)
+	var count int64
+	err := r.db.Pool.QueryRow(ctx, "SELECT COUNT(*) FROM identities WHERE deleted_at IS NULL").Scan(&count)
+	return count, err
 }
 
 func (r *IdentityRepository) UpdateIdentity(ctx context.Context, identity *domain.Identity) (*domain.Identity, error) {
-	params := generated.UpdateIdentityParams{
-		ID:           pgtype.UUID{Bytes: identity.ID, Valid: true},
-		FullName:     identity.FullName,
-		PhoneNumber:  pgtype.Text{String: identity.PhoneNumber, Valid: identity.PhoneNumber != ""},
-		FaceImageUrl: identity.FaceImageURL,
-		// Status is updated via separate method
-	}
+	query := `
+		UPDATE identities
+		SET full_name = $2, type = $3, phone_number = $4, identity_card_number = $5, face_image_url = $6, department = $7, metadata = $8, note = $9, updated_at = NOW()
+		WHERE id = $1 AND deleted_at IS NULL
+		RETURNING updated_at`
 
-	row, err := r.db.Query.UpdateIdentity(ctx, params)
+	err := r.db.Pool.QueryRow(ctx, query,
+		identity.ID, identity.FullName, identity.Type, identity.PhoneNumber,
+		identity.IdentityCardNumber, identity.FaceImageURL, identity.Department, identity.Metadata, identity.Note,
+	).Scan(&identity.UpdatedAt)
+
 	if err != nil {
 		return nil, err
 	}
-	return r.toDomain(row), nil
+	return identity, nil
 }
 
-func (r *IdentityRepository) UpdateIdentityStatus(ctx context.Context, id uuid.UUID, status domain.IdentityStatus, approvedBy *uuid.UUID) (*domain.Identity, error) {
-	params := generated.UpdateIdentityStatusParams{
-		ID:     pgtype.UUID{Bytes: id, Valid: true},
-		Status: generated.NullIdentityStatus{IdentityStatus: generated.IdentityStatus(status), Valid: true},
-	}
-	if approvedBy != nil {
-		params.ApprovedBy = pgtype.UUID{Bytes: *approvedBy, Valid: true}
-	}
+func (r *IdentityRepository) UpdateIdentityStatus(ctx context.Context, id uuid.UUID, status domain.IdentityStatus) (*domain.Identity, error) {
+	query := `
+		UPDATE identities
+		SET status = $2, updated_at = NOW()
+		WHERE id = $1 AND deleted_at IS NULL`
 
-	row, err := r.db.Query.UpdateIdentityStatus(ctx, params)
+	_, err := r.db.Pool.Exec(ctx, query, id, status)
 	if err != nil {
 		return nil, err
 	}
-	return r.toDomain(row), nil
+	return r.GetIdentity(ctx, id)
 }
 
 func (r *IdentityRepository) DeleteIdentity(ctx context.Context, id uuid.UUID) error {
-	return r.db.Query.DeleteIdentity(ctx, pgtype.UUID{Bytes: id, Valid: true})
+	query := `UPDATE identities SET deleted_at = NOW(), updated_at = NOW() WHERE id = $1`
+	_, err := r.db.Pool.Exec(ctx, query, id)
+	return err
 }
 
-func (r *IdentityRepository) toDomain(row generated.Identity) *domain.Identity {
-	// Handle Null Status safely
-	status := domain.IdentityStatusPending
-	if row.Status.Valid {
-		status = domain.IdentityStatus(row.Status.IdentityStatus)
+type IdentityFaceRepository struct {
+	db *PostgresDB
+}
+
+func NewIdentityFaceRepository(db *PostgresDB) ports.IdentityFaceRepository {
+	return &IdentityFaceRepository{db: db}
+}
+
+func (r *IdentityFaceRepository) CreateFace(ctx context.Context, face *domain.IdentityFace) (*domain.IdentityFace, error) {
+	query := `INSERT INTO identity_faces (identity_id, image_url, is_primary, quality_score, blur_score) 
+	          VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at`
+	err := r.db.Pool.QueryRow(ctx, query, face.IdentityID, face.ImageURL, face.IsPrimary, face.QualityScore, face.BlurScore).
+		Scan(&face.ID, &face.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return face, nil
+}
+
+func (r *IdentityFaceRepository) ListFaces(ctx context.Context, identityID uuid.UUID) ([]*domain.IdentityFace, error) {
+	query := `SELECT id, identity_id, image_url, is_primary, quality_score, blur_score, created_at 
+	          FROM identity_faces WHERE identity_id = $1`
+	rows, err := r.db.Pool.Query(ctx, query, identityID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	faces := []*domain.IdentityFace{}
+	for rows.Next() {
+		face := &domain.IdentityFace{}
+		err := rows.Scan(&face.ID, &face.IdentityID, &face.ImageURL, &face.IsPrimary, &face.QualityScore, &face.BlurScore, &face.CreatedAt)
+		if err != nil {
+			return nil, err
+		}
+		faces = append(faces, face)
+	}
+	return faces, nil
+}
+
+func (r *IdentityFaceRepository) DeleteFace(ctx context.Context, id uuid.UUID) error {
+	_, err := r.db.Pool.Exec(ctx, "DELETE FROM identity_faces WHERE id = $1", id)
+	return err
+}
+
+func (r *IdentityFaceRepository) SetPrimary(ctx context.Context, identityID, faceID uuid.UUID) error {
+	tx, err := r.db.Pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	_, err = tx.Exec(ctx, "UPDATE identity_faces SET is_primary = false WHERE identity_id = $1", identityID)
+	if err != nil {
+		return err
 	}
 
-	id := &domain.Identity{
-		ID:                 row.ID.Bytes,
-		Code:               row.Code,
-		FullName:           row.FullName,
-		PhoneNumber:        row.PhoneNumber.String,
-		IdentityCardNumber: row.IdentityCardNumber.String,
-		FaceImageURL:       row.FaceImageUrl,
-		Type:               row.Type,
-		Status:             status,
-		Note:               row.Note.String,
-		CreatedAt:          row.CreatedAt.Time,
-		UpdatedAt:          row.UpdatedAt.Time,
+	_, err = tx.Exec(ctx, "UPDATE identity_faces SET is_primary = true WHERE id = $1", faceID)
+	if err != nil {
+		return err
 	}
 
-	if row.CreatedBy.Valid {
-		uid := uuid.UUID(row.CreatedBy.Bytes)
-		id.CreatedBy = &uid
-	}
-	if row.ApprovedBy.Valid {
-		uid := uuid.UUID(row.ApprovedBy.Bytes)
-		id.ApprovedBy = &uid
-	}
-	if row.UserAccountID.Valid {
-		uid := uuid.UUID(row.UserAccountID.Bytes)
-		id.UserAccountID = &uid
-	}
-	if row.DeletedAt.Valid {
-		t := row.DeletedAt.Time
-		id.DeletedAt = &t
-	}
-
-	return id
+	return tx.Commit(ctx)
 }

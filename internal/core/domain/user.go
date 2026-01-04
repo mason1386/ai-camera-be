@@ -42,3 +42,20 @@ type LoginResponse struct {
 	AccessToken string `json:"access_token"`
 	User        *User  `json:"user"`
 }
+
+type CreateWebUserRequest struct {
+	Username string     `json:"username" binding:"required"`
+	Email    string     `json:"email" binding:"required,email"`
+	Password string     `json:"password" binding:"required,min=6"`
+	FullName string     `json:"full_name"`
+	Phone    string     `json:"phone"`
+	RoleID   string     `json:"role_id"`
+	Status   UserStatus `json:"status"`
+}
+
+type UpdateWebUserRequest struct {
+	FullName *string     `json:"full_name"`
+	Phone    *string     `json:"phone"`
+	RoleID   *string     `json:"role_id"`
+	Status   *UserStatus `json:"status"`
+}

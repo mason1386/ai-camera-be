@@ -2,13 +2,11 @@ package postgres
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
-	"app/internal/adapters/storage/postgres/generated"
 	"app/internal/core/domain"
 	"app/internal/core/ports"
+
+	"github.com/jackc/pgx/v5"
 )
 
 type ZoneRepository struct {
@@ -20,80 +18,59 @@ func NewZoneRepository(db *PostgresDB) ports.ZoneRepository {
 }
 
 func (r *ZoneRepository) Save(ctx context.Context, zone *domain.Zone) error {
-	params := generated.CreateZoneParams{
-		Name:        zone.Name,
-		Description: pgtype.Text{String: zone.Description, Valid: zone.Description != ""},
-	}
-
-	result, err := r.db.Query.CreateZone(ctx, params)
-	if err != nil {
-		return fmt.Errorf("failed to create zone: %w", err)
-	}
-
-	zone.ID = fmt.Sprintf("%x-%x-%x-%x-%x", result.ID.Bytes[0:4], result.ID.Bytes[4:6], result.ID.Bytes[6:8], result.ID.Bytes[8:10], result.ID.Bytes[10:16])
-	zone.CreatedAt = result.CreatedAt.Time
-	return nil
+	query := `INSERT INTO zones (name, description) VALUES ($1, $2) RETURNING id, created_at`
+	return r.db.Pool.QueryRow(ctx, query, zone.Name, zone.Description).Scan(&zone.ID, &zone.CreatedAt)
 }
 
 func (r *ZoneRepository) GetByID(ctx context.Context, id string) (*domain.Zone, error) {
-	var uuid pgtype.UUID
-	if err := uuid.Scan(id); err != nil {
-		return nil, fmt.Errorf("invalid uuid: %w", err)
-	}
-
-	row, err := r.db.Query.GetZone(ctx, uuid)
+	query := `SELECT id, name, COALESCE(description, ''), created_at FROM zones WHERE id = $1`
+	zone := &domain.Zone{}
+	err := r.db.Pool.QueryRow(ctx, query, id).Scan(&zone.ID, &zone.Name, &zone.Description, &zone.CreatedAt)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, nil
 		}
 		return nil, err
 	}
-	return mapZoneEntity(row), nil
+	return zone, nil
 }
 
-func (r *ZoneRepository) List(ctx context.Context) ([]*domain.Zone, error) {
-	rows, err := r.db.Query.ListZones(ctx)
+func (r *ZoneRepository) List(ctx context.Context, search string) ([]*domain.Zone, error) {
+	query := `SELECT id, name, COALESCE(description, ''), created_at FROM zones`
+	var args []interface{}
+
+	if search != "" {
+		query += ` WHERE name ILIKE $1 OR description ILIKE $1`
+		args = append(args, "%"+search+"%")
+	}
+
+	query += ` ORDER BY created_at DESC`
+
+	rows, err := r.db.Pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
-	zones := make([]*domain.Zone, len(rows))
-	for i, row := range rows {
-		zones[i] = mapZoneEntity(row)
+	zones := []*domain.Zone{} // Initialize as empty slice
+	for rows.Next() {
+		zone := &domain.Zone{}
+		err := rows.Scan(&zone.ID, &zone.Name, &zone.Description, &zone.CreatedAt)
+		if err != nil {
+			return nil, err
+		}
+		zones = append(zones, zone)
 	}
 	return zones, nil
 }
 
 func (r *ZoneRepository) Update(ctx context.Context, zone *domain.Zone) error {
-	var uuid pgtype.UUID
-	if err := uuid.Scan(zone.ID); err != nil {
-		return fmt.Errorf("invalid uuid: %w", err)
-	}
-
-	params := generated.UpdateZoneParams{
-		ID:          uuid,
-		Name:        zone.Name,
-		Description: pgtype.Text{String: zone.Description, Valid: zone.Description != ""},
-	}
-
-	_, err := r.db.Query.UpdateZone(ctx, params)
+	query := `UPDATE zones SET name = $2, description = $3 WHERE id = $1`
+	_, err := r.db.Pool.Exec(ctx, query, zone.ID, zone.Name, zone.Description)
 	return err
 }
 
 func (r *ZoneRepository) Delete(ctx context.Context, id string) error {
-	var uuid pgtype.UUID
-	if err := uuid.Scan(id); err != nil {
-		return fmt.Errorf("invalid uuid: %w", err)
-	}
-	return r.db.Query.DeleteZone(ctx, uuid)
-}
-
-func mapZoneEntity(row generated.Zone) *domain.Zone {
-	idStr := fmt.Sprintf("%x-%x-%x-%x-%x", row.ID.Bytes[0:4], row.ID.Bytes[4:6], row.ID.Bytes[6:8], row.ID.Bytes[8:10], row.ID.Bytes[10:16])
-	return &domain.Zone{
-		ID:          idStr,
-		Name:        row.Name,
-		Description: row.Description.String,
-		CreatedAt:   row.CreatedAt.Time,
-	}
+	_, err := r.db.Pool.Exec(ctx, "DELETE FROM zones WHERE id = $1", id)
+	return err
 }

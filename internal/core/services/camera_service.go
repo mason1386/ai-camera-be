@@ -6,6 +6,7 @@ import (
 	"app/internal/core/domain"
 	"app/internal/core/ports"
 	"app/pkg/logger"
+
 	"go.uber.org/zap"
 )
 
@@ -43,11 +44,11 @@ func (s *CameraService) GetCamera(ctx context.Context, id string) (*domain.Camer
 	return s.repo.GetByID(ctx, id)
 }
 
-func (s *CameraService) ListCameras(ctx context.Context, zoneID string) ([]*domain.Camera, error) {
+func (s *CameraService) ListCameras(ctx context.Context, zoneID string, search string) ([]*domain.Camera, error) {
 	if zoneID != "" {
-		return s.repo.ListByZone(ctx, zoneID)
+		return s.repo.ListByZone(ctx, zoneID, search)
 	}
-	return s.repo.List(ctx)
+	return s.repo.List(ctx, search)
 }
 
 func (s *CameraService) UpdateCamera(ctx context.Context, id string, req *domain.UpdateCameraRequest) (*domain.Camera, error) {

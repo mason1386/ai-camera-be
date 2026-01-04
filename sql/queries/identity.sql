@@ -1,8 +1,8 @@
 -- name: CreateIdentity :one
 INSERT INTO identities (
-    code, full_name, phone_number, identity_card_number, face_image_url, type, status, note, created_by
+    code, full_name, group_name, phone_number, identity_card_number, department, metadata, status, note, created_by
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
 ) RETURNING *;
 
 -- name: GetIdentity :one
@@ -25,13 +25,13 @@ WHERE deleted_at IS NULL;
 
 -- name: UpdateIdentity :one
 UPDATE identities
-SET full_name = $2, phone_number = $3, face_image_url = $4, updated_at = NOW()
+SET full_name = $2, group_name = $3, phone_number = $4, identity_card_number = $5, department = $6, metadata = $7, note = $8, updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL
 RETURNING *;
 
 -- name: UpdateIdentityStatus :one
 UPDATE identities
-SET status = $2, approved_by = $3, updated_at = NOW()
+SET status = $2, updated_at = NOW()
 WHERE id = $1 AND deleted_at IS NULL
 RETURNING *;
 

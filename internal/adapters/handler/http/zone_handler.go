@@ -3,9 +3,10 @@ package http
 import (
 	"net/http"
 
-	"github.com/gin-gonic/gin"
 	"app/internal/core/domain"
 	"app/internal/core/ports"
+
+	"github.com/gin-gonic/gin"
 )
 
 type ZoneHandler struct {
@@ -44,11 +45,13 @@ func (h *ZoneHandler) CreateZone(c *gin.Context) {
 // @Summary List all zones
 // @Tags zones
 // @Produce json
+// @Param q query string false "Search query"
 // @Success 200 {array} domain.Zone
 // @Security BearerAuth
 // @Router /zones [get]
 func (h *ZoneHandler) ListZones(c *gin.Context) {
-	zones, err := h.service.ListZones(c.Request.Context())
+	search := c.Query("q")
+	zones, err := h.service.ListZones(c.Request.Context(), search)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
